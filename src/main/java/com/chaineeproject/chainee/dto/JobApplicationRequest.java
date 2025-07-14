@@ -8,5 +8,4 @@ import lombok.Setter;
 public class JobApplicationRequest {
     private String applicantDid;
     private Long resumeId;
-    private String proposal;
 }

@@ -37,7 +37,6 @@ public class JobApplicationService {
         application.setPost(post);
         application.setApplicant(applicant);
         application.setResume(resume);
-        application.setProposal(request.getProposal());
         application.setStatus("pending");
         application.setCreatedAt(LocalDateTime.now());
 
