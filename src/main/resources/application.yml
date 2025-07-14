@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: chainee
+  profiles:
+    active: dev  # 운영 시 prod로 변경
+
+server:
+  port: 8080
