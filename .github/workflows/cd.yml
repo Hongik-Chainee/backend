@@ -34,6 +34,12 @@ jobs:
           fi
           echo "jar_path=$JAR_FILE" >> $GITHUB_OUTPUT
 
+      - name: Add EC2 Host Key to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_HOST_KEYS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
       - name: Transfer JAR to EC2 Server
         uses: appleboy/scp-action@master
         with:
@@ -58,8 +64,8 @@ jobs:
             sudo systemctl stop chainee-backend || true
 
             DEPLOY_DIR="/home/${{ secrets.SSH_USER }}/chainee/build/libs"
-            JAR_NAME=$(ls $DEPLOY_DIR/*.jar | head -n 1)
-            sudo chmod +x "$JAR_NAME"
+            JAR_NAME=$(basename "${{ steps.get_jar_path.outputs.jar_path }}")
+            sudo chmod +x "$DEPLOY_DIR/$JAR_NAME"
 
             echo "Starting chainee-backend service..."
             sudo systemctl start chainee-backend
