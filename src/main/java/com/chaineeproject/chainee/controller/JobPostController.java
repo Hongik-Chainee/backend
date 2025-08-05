@@ -8,6 +8,8 @@ import com.chaineeproject.chainee.repository.JobPostRepository;
 import com.chaineeproject.chainee.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +21,7 @@ import java.time.LocalDateTime;
 @RequestMapping("/api/job/posts")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Job Post", description = "구인 공고 등록 API")
 public class JobPostController {
 
     private final UserRepository userRepository;
@@ -26,6 +29,7 @@ public class JobPostController {
     private final ObjectMapper objectMapper;
 
     @PostMapping
+    @Operation(summary = "구인 공고 등록", description = "작성자의 DID를 바탕으로 구인 공고를 생성합니다.")
     public ResponseEntity<JobPostResponse> createJobPost(@RequestBody JobPostRequest request) {
         try {
             // 1. 작성자 DID로 유저 조회

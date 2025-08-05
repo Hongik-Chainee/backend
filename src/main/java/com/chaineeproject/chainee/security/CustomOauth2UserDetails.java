@@ -1,19 +1,27 @@
 package com.chaineeproject.chainee.security;
 
 import com.chaineeproject.chainee.entity.User;
-import lombok.RequiredArgsConstructor;
+import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
 
-//로그인 시 사용자 DB 조회 & 없으면 회원가입(로그인 후 인증정보 역할 UserDetails+OAuth2User)
-@RequiredArgsConstructor
+@Getter
 public class CustomOauth2UserDetails implements OAuth2User, UserDetails {
 
     private final User user;
     private final Map<String, Object> attributes;
+    private final boolean isNewUser;
+
+    public CustomOauth2UserDetails(User user, Map<String, Object> attributes, boolean isNewUser) {
+        this.user = user;
+        this.attributes = attributes;
+        this.isNewUser = isNewUser;
+    }
 
     @Override
     public Map<String, Object> getAttributes() {
@@ -22,17 +30,17 @@ public class CustomOauth2UserDetails implements OAuth2User, UserDetails {
 
     @Override
     public String getName() {
-        return user.getEmail(); // 또는 user.getId().toString()
+        return user.getEmail();
     }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList(); // 권한이 없으면 비워두기
+        return Collections.emptyList(); // 권한 없음
     }
 
     @Override
     public String getPassword() {
-        return user.getPasswordHash(); // OAuth 사용자는 보통 null
+        return null; // OAuth2 사용자에겐 비밀번호 없음
     }
 
     @Override

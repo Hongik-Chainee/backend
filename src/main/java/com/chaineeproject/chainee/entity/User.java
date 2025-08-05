@@ -1,28 +1,30 @@
 package com.chaineeproject.chainee.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @Table(name = "users")
 public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password_hash")
-    private String passwordHash;
-
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String did;
+
+    private String provider;
+    private String providerId;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -30,7 +32,13 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    private String provider; //ex)google
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = this.updatedAt = LocalDateTime.now();
+    }
 
-    private String providerId; //ex)google에서의 사용자 id
+    @PreUpdate
+    protected void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
 }
