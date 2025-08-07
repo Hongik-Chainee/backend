@@ -2,37 +2,11 @@ spring:
   application:
     name: chainee
   profiles:
-    active: prod  # 필요시 dev로 바꾸되, dev/prod 모두 이 설정 사용
-
-  datasource:
-    url: jdbc:mysql://chainee-db.cx44wssma5ck.ap-northeast-2.rds.amazonaws.com:3306/chainee?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    username: admin
-    password: ${DB_PASSWORD}
-
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.MySQL8Dialect
-        format_sql: true
+    active: prod  # 기본값: prod. 개발할 때는 dev로 변경
 
   h2:
     console:
-      enabled: false  # 필요 없으니 false
-
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
-            scope:
-              - email
-              - profile
+      enabled: false  # 모든 환경에서 H2 콘솔 비활성화
 
 server:
   port: 8080
