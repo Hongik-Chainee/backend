@@ -5,7 +5,7 @@ spring:
     active: prod  # 필요시 dev로 바꾸되, dev/prod 모두 이 설정 사용
 
   datasource:
-    url: jdbc:mysql://localhost:3306/chainee?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    url: jdbc:mysql://chainee-db.cx44wssma5ck.ap-northeast-2.rds.amazonaws.com:3306/chainee?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
     password: ${DB_PASSWORD}
