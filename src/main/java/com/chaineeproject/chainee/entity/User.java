@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -31,6 +33,55 @@ public class User {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    /** ===== [프로필 관련 필드 추가] ===== */
+
+    private String profileImageUrl; // 프로필 사진
+    private String name;
+
+    @ElementCollection
+    @CollectionTable(name = "user_positions", joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "position")
+    private List<String> positions = new ArrayList<>(); // 여러 포지션 가능
+
+    private String from; // ex. Hongik Univ
+    private String inLocation; // ex. Seoul, Republic of Korea
+    private String website; // ex. https://www.yeoeunn.com
+
+    private String introductionHeadline;
+
+    @Lob
+    private String introductionContent;
+
+    private String introductionPhotoUrl;
+
+    /** ===== [연관 관계] ===== */
+
+    @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<JobPost> jobPosts = new ArrayList<>();
+
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Resume> resumes = new ArrayList<>();
+
+    // 프로젝트: 완료한 프로젝트들 (NFT 기반)
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Project> myProjects = new ArrayList<>();
+
+    // 대표 프로젝트 (선택 or 최근 완료 자동 선택)
+    @OneToOne
+    @JoinColumn(name = "main_project_id")
+    private Project mainProject;
+
+    // 보관한 프로젝트 (타인 비공개)
+    @ManyToMany
+    @JoinTable(
+            name = "user_stored_projects",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "project_id")
+    )
+    private List<Project> storedProjects = new ArrayList<>();
+
+    /** ===== [생성/수정 자동화] ===== */
 
     @PrePersist
     protected void onCreate() {
