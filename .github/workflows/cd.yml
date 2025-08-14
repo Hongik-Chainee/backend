@@ -2,8 +2,10 @@ name: Java Spring Boot CD
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
+
+permissions:
+  contents: read
 
 jobs:
   deploy:
@@ -16,23 +18,25 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
+          cache: gradle
 
-      - name: Build JAR for Production
+      - name: Build (bootJar, prod)
         run: |
           chmod +x gradlew
-          ./gradlew clean assemble -Pspring.profiles.active=prod
+          ./gradlew clean bootJar -Pspring.profiles.active=prod
 
-      - name: Locate and Prepare JAR artifact
-        id: get_jar_path
+      - name: Locate executable JAR (exclude -plain)
+        id: get_jar
         run: |
-          JAR_FILE=$(find build/libs -name "*.jar" | head -n 1)
+          set -e
+          JAR_FILE=$(ls -t build/libs/*.jar | grep -v -E 'plain|original' | head -n 1)
           if [ -z "$JAR_FILE" ]; then
-            echo "Error: No executable JAR file found!"
-            exit 1
+            echo "No executable boot JAR found"; exit 1
           fi
-          echo "jar_path=$JAR_FILE" >> $GITHUB_OUTPUT
+          echo "jar=$JAR_FILE" >> $GITHUB_OUTPUT
+          echo "Using: $JAR_FILE"
 
       - name: Add EC2 Host Key to known_hosts
         run: |
@@ -40,18 +44,19 @@ jobs:
           echo "${{ secrets.SSH_HOST_KEYS }}" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
-      - name: Transfer JAR to EC2 Server
+      - name: Upload JAR to EC2 (staging)
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
-          source: ${{ steps.get_jar_path.outputs.jar_path }}
-          target: /home/${{ secrets.SSH_USER }}/chainee/build/libs/
+          source: ${{ steps.get_jar.outputs.jar }}
+          target: /home/${{ secrets.SSH_USER }}/chainee/releases/
           strip_components: 2
-          insecure: true
+          overwrite: true
+          timeout: 120s
 
-      - name: Deploy and Restart Application on EC2
+      - name: Deploy & Restart on EC2
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -59,16 +64,30 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -eux
+            REL_DIR="/home/${{ secrets.SSH_USER }}/chainee/releases"
+            TARGET_JAR="/home/${{ secrets.SSH_USER }}/chainee/build/libs/chainee-0.0.1-SNAPSHOT.jar"
+            LATEST_JAR=$(ls -t "$REL_DIR"/*.jar | head -n 1)
 
-            echo "Stopping existing chainee-backend service..."
+            echo "Stopping service..."
             sudo systemctl stop chainee-backend || true
+            pkill -f 'java.*chainee' || true
 
-            DEPLOY_DIR="/home/${{ secrets.SSH_USER }}/chainee/build/libs"
-            JAR_NAME=$(basename "${{ steps.get_jar_path.outputs.jar_path }}")
-            sudo chmod +x "$DEPLOY_DIR/$JAR_NAME"
+            # 보관 경로 존재 보장
+            mkdir -p "$(dirname "$TARGET_JAR")"
 
-            echo "Starting chainee-backend service..."
+            # 유닛이 바라보는 파일로 '덮어쓰기' 배포
+            cp -f "$LATEST_JAR" "$TARGET_JAR"
+            sudo chown ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} "$TARGET_JAR"
+            sudo chmod +x "$TARGET_JAR"
+
+            # releases 폴더는 최신 1개만 보존(누적 방지)
+            (ls -t "$REL_DIR"/*.jar | tail -n +2 | xargs -r rm -f)
+
+            echo "Starting service..."
+            sudo systemctl daemon-reload
             sudo systemctl start chainee-backend
 
-            echo "Checking service status..."
+            echo "Service status:"
             sudo systemctl status chainee-backend --no-pager || true
+            echo "Last logs:"
+            sudo journalctl -u chainee-backend -n 80 --no-pager || true
