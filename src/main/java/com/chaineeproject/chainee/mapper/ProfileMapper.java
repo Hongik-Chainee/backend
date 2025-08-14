@@ -1,16 +1,33 @@
 package com.chaineeproject.chainee.mapper;
 
-import com.chaineeproject.chainee.dto.*;
-import com.chaineeproject.chainee.entity.*;
+import com.chaineeproject.chainee.dto.JobPostDto;
+import com.chaineeproject.chainee.dto.ProfileResponse;
+import com.chaineeproject.chainee.dto.ProjectDto;
+import com.chaineeproject.chainee.dto.ResumeDto;
+import com.chaineeproject.chainee.entity.JobPost;
+import com.chaineeproject.chainee.entity.Project;
+import com.chaineeproject.chainee.entity.Resume;
+import com.chaineeproject.chainee.entity.User;
+import com.chaineeproject.chainee.repository.FollowRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
+@RequiredArgsConstructor
 public class ProfileMapper {
 
+    private final FollowRepository followRepository;
+
+    /** 기존 사용처 호환용 (viewerId 미제공 시 isFollowing=false 처리) */
     public ProfileResponse toDto(User user, boolean isOwner) {
+        return toDto(user, isOwner, null);
+    }
+
+    /** viewerIdOrNull: 프로필을 조회하는 사용자의 ID(비로그인/모름이면 null) */
+    public ProfileResponse toDto(User user, boolean isOwner, Long viewerIdOrNull) {
         Project main = resolveMainProject(user, isOwner);
 
         List<ProjectDto> myProjects = user.getMyProjects().stream()
@@ -27,6 +44,12 @@ public class ProfileMapper {
                 .map(this::toResumeDto)
                 .collect(Collectors.toList());
 
+        // ✅ 팔로우 정보
+        long followerCount = followRepository.countByFolloweeId(user.getId());
+        long followingCount = followRepository.countByFollowerId(user.getId());
+        boolean isFollowing = (viewerIdOrNull != null)
+                && followRepository.existsByFollowerIdAndFolloweeId(viewerIdOrNull, user.getId());
+
         return new ProfileResponse(
                 user.getId(),
                 user.getEmail(),
@@ -42,7 +65,10 @@ public class ProfileMapper {
                 toProjectDtoOrNull(main),
                 myProjects,
                 jobPosts,
-                resumes
+                resumes,
+                followerCount,
+                followingCount,
+                isFollowing
         );
     }
 
@@ -88,7 +114,7 @@ public class ProfileMapper {
     }
 
     private JobPostDto toJobPostDto(JobPost j) {
-        // JobPostDto가 record로 바뀌었으니 생성자 호출
+        // JobPostDto는 record이므로 생성자 호출
         return new JobPostDto(
                 j.getId(),
                 j.getTitle(),

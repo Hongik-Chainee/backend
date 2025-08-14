@@ -10,6 +10,7 @@ import com.chaineeproject.chainee.dto.ProjectDto;
 import com.chaineeproject.chainee.dto.ResumeDto;
 import com.chaineeproject.chainee.entity.Project;
 import com.chaineeproject.chainee.entity.User;
+import com.chaineeproject.chainee.repository.FollowRepository;
 import com.chaineeproject.chainee.repository.ProjectRepository;
 import com.chaineeproject.chainee.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class ProfileService {
 
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
+    private final FollowRepository followRepository;
 
     // ========================= 조회 =========================
     @Transactional(readOnly = true)
@@ -79,6 +81,12 @@ public class ProfileService {
                 ))
                 .toList();
 
+        long followerCount = followRepository.countByFolloweeId(profileUserId);
+        long followingCount = followRepository.countByFollowerId(profileUserId);
+        boolean isFollowing = (requesterUserIdOrNull != null)
+                && followRepository.existsByFollowerIdAndFolloweeId(requesterUserIdOrNull, profileUserId);
+
+
         return new ProfileResponse(
                 profileUser.getId(),
                 profileUser.getEmail(),
@@ -94,7 +102,10 @@ public class ProfileService {
                 toProjectDtoOrNull(effectiveMain),
                 myProjects,
                 jobPosts,
-                resumes
+                resumes,
+                followerCount,
+                followingCount,
+                isFollowing
         );
     }
 

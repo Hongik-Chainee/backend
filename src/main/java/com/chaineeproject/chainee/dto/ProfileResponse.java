@@ -50,5 +50,14 @@ public record ProfileResponse(
         List<JobPostDto> jobPosts,
 
         @Schema(description = "등록한 이력서 목록")
-        List<ResumeDto> resumes
+        List<ResumeDto> resumes,
+
+        @Schema(description = "팔로워 수")
+        long followerCount,
+
+        @Schema(description = "팔로잉 수")
+        long followingCount,
+
+        @Schema(description = "조회자가 이 사용자를 팔로우 중인지")
+        boolean isFollowing
 ) {}
