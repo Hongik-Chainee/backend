@@ -50,39 +50,52 @@ public class ProfileService {
                 .sorted(byRecentDesc())
                 .toList();
 
-        return ProfileResponse.builder()
-                .id(profileUser.getId())
-                .email(profileUser.getEmail())
-                .name(profileUser.getName())
-                .profileImageUrl(profileUser.getProfileImageUrl())
-                .positions(profileUser.getPositions())
-                .from(profileUser.getFrom())
-                .in(profileUser.getInLocation())
-                .website(profileUser.getWebsite())
-                .introductionHeadline(profileUser.getIntroductionHeadline())
-                .introductionContent(profileUser.getIntroductionContent())
-                .introductionPhotoUrl(profileUser.getIntroductionPhotoUrl())
-                .mainProject(toProjectDtoOrNull(effectiveMain))
-                .myProjects(projects.stream().map(this::toProjectDto).toList())
-                .jobPosts(profileUser.getJobPosts().stream().map(p -> JobPostDto.builder()
-                        .id(p.getId())
-                        .title(p.getTitle())
-                        .description(p.getDescription())
-                        .payment(p.getPayment())
-                        .requiredSkills(p.getRequiredSkills())
-                        .deadline(p.getDeadline())
-                        .build()).toList())
-                .resumes(profileUser.getResumes().stream().map(r -> ResumeDto.builder()
-                        .id(r.getId())
-                        .title(r.getTitle())
-                        .name(r.getName())
-                        .introduction(r.getIntroduction())
-                        .desiredPosition(r.getDesiredPosition())
-                        .skills(r.getSkills())
-                        .careerLevel(r.getCareerLevel())
-                        .portfolioUrl(r.getPortfolioUrl())
-                        .build()).toList())
-                .build();
+        // record 생성자 기반 매핑
+        List<ProjectDto> myProjects = projects.stream()
+                .map(this::toProjectDto)
+                .toList();
+
+        List<JobPostDto> jobPosts = profileUser.getJobPosts().stream()
+                .map(p -> new JobPostDto(
+                        p.getId(),
+                        p.getTitle(),
+                        p.getDescription(),
+                        p.getPayment(),
+                        p.getRequiredSkills(),
+                        p.getDeadline()
+                ))
+                .toList();
+
+        List<ResumeDto> resumes = profileUser.getResumes().stream()
+                .map(r -> new ResumeDto(
+                        r.getId(),
+                        r.getTitle(),
+                        r.getName(),
+                        r.getIntroduction(),
+                        r.getDesiredPosition(),
+                        r.getSkills(),
+                        r.getCareerLevel(),
+                        r.getPortfolioUrl()
+                ))
+                .toList();
+
+        return new ProfileResponse(
+                profileUser.getId(),
+                profileUser.getEmail(),
+                profileUser.getName(),
+                profileUser.getProfileImageUrl(),
+                profileUser.getPositions(),
+                profileUser.getFrom(),
+                profileUser.getInLocation(),
+                profileUser.getWebsite(),
+                profileUser.getIntroductionHeadline(),
+                profileUser.getIntroductionContent(),
+                profileUser.getIntroductionPhotoUrl(),
+                toProjectDtoOrNull(effectiveMain),
+                myProjects,
+                jobPosts,
+                resumes
+        );
     }
 
     // ===================== 프로필 수정 =======================
@@ -216,13 +229,13 @@ public class ProfileService {
     }
 
     private ProjectDto toProjectDto(Project p) {
-        return ProjectDto.builder()
-                .id(p.getId())
-                .title(p.getTitle())
-                .nftTokenUri(p.getNftTokenUri())
-                .completedAt(p.getCompletedAt())
-                .isPublic(p.isPublic())
-                .build();
+        return new ProjectDto(
+                p.getId(),
+                p.getTitle(),
+                p.getNftTokenUri(),
+                p.getCompletedAt(),
+                p.isPublic()
+        );
     }
 
     private ProjectDto toProjectDtoOrNull(Project p) {

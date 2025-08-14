@@ -21,7 +21,7 @@ public class JobApplicationService {
 
     public void applyToJob(Long postId, JobApplicationRequest request) {
         // 1. 지원자 조회
-        User applicant = userRepository.findByDid(request.getApplicantDid())
+        User applicant = userRepository.findByDid(request.applicantDid())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.APPLICANT_NOT_FOUND));
 
         // 2. 공고 조회
@@ -29,7 +29,7 @@ public class JobApplicationService {
                 .orElseThrow(() -> new ApplicationException(ErrorCode.JOB_POST_NOT_FOUND));
 
         // 3. 이력서 조회
-        Resume resume = resumeRepository.findById(request.getResumeId())
+        Resume resume = resumeRepository.findById(request.resumeId())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.RESUME_NOT_FOUND));
 
         // 4. 지원 엔티티 생성 및 저장
