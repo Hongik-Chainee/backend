@@ -27,4 +27,11 @@ public class Project {
     private User owner;
 
     private LocalDateTime completedAt;
+
+    @Column(nullable = false)
+    private boolean isPublic = true;
+
+    @org.hibernate.annotations.CreationTimestamp
+    @Column(updatable = false, nullable = false)
+    private LocalDateTime createdAt;
 }
