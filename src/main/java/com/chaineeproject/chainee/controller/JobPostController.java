@@ -9,6 +9,7 @@ import com.chaineeproject.chainee.repository.UserRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.*;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,35 +30,56 @@ public class JobPostController {
     private final ObjectMapper objectMapper;
 
     @PostMapping
-    @Operation(summary = "구인 공고 등록", description = "작성자의 DID를 바탕으로 구인 공고를 생성합니다.")
+    @Operation(
+            summary = "구인 공고 등록",
+            description = "작성자의 DID를 바탕으로 구인 공고를 생성합니다.",
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = JobPostRequest.class),
+                            examples = @ExampleObject(value = """
+                                {
+                                  "authorDid": "did:example:abc123",
+                                  "title": "백엔드 개발자 구합니다",
+                                  "description": "Spring Boot 프로젝트 개발자 모집",
+                                  "payment": 1500000,
+                                  "requiredSkills": ["Java","Spring Boot","JPA"],
+                                  "duration": "6m",
+                                  "deadline": "2025-09-30"
+                                }
+                            """)
+                    )
+            )
+    )
     public ResponseEntity<JobPostResponse> createJobPost(@RequestBody JobPostRequest request) {
         try {
-            // 1. 작성자 DID로 유저 조회
-            User author = userRepository.findByDid(request.getAuthorDid())
+            // 1) 작성자 DID로 유저 조회 (record 접근자 사용)
+            User author = userRepository.findByDid(request.authorDid())
                     .orElseThrow(() -> new IllegalArgumentException("작성자(DID)를 찾을 수 없습니다."));
 
-            // 2. requiredSkills → JSON 문자열로 변환
-            String skillsJson = objectMapper.writeValueAsString(request.getRequiredSkills());
+            // 2) requiredSkills → JSON 문자열로 변환
+            String skillsJson = objectMapper.writeValueAsString(request.requiredSkills());
 
-            // 3. 엔티티 생성 및 저장
+            // 3) 엔티티 생성 및 저장
             JobPost post = JobPost.builder()
                     .author(author)
-                    .title(request.getTitle())
-                    .description(request.getDescription())
-                    .payment(request.getPayment())
+                    .title(request.title())
+                    .description(request.description())
+                    .payment(request.payment())
                     .requiredSkills(skillsJson)
-                    .duration(request.getDuration())
-                    .deadline(request.getDeadline())
+                    .duration(request.duration())
+                    .deadline(request.deadline())
                     .createdAt(LocalDateTime.now())
                     .build();
 
             jobPostRepository.save(post);
 
-            // 4. 응답 반환
+            // 4) 응답 반환 (편의 생성자 사용)
             return ResponseEntity.ok(new JobPostResponse(
                     true,
                     "JOB_POST_CREATED",
-                    new JobPostResponse.DataWrapper("post-" + post.getId())
+                    "post-" + post.getId()
             ));
 
         } catch (JsonProcessingException e) {
@@ -65,14 +87,14 @@ public class JobPostController {
             return ResponseEntity.internalServerError().body(new JobPostResponse(
                     false,
                     "SKILL_PARSE_ERROR",
-                    null
+                    (String) null
             ));
         } catch (Exception e) {
             log.error("구인 공고 등록 실패", e);
             return ResponseEntity.internalServerError().body(new JobPostResponse(
                     false,
                     "JOB_POST_CREATION_FAILED",
-                    null
+                    (String) null
             ));
         }
     }
