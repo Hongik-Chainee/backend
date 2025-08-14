@@ -12,4 +12,5 @@ public class ProjectDto {
     private String title;
     private String nftTokenUri;
     private LocalDateTime completedAt;
+    private Boolean isPublic;
 }
