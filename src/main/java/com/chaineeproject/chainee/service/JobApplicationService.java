@@ -32,7 +32,12 @@ public class JobApplicationService {
         Resume resume = resumeRepository.findById(request.resumeId())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.RESUME_NOT_FOUND));
 
-        // 4. 지원 엔티티 생성 및 저장
+        // 4. 중복 지원 방지
+        if (jobApplicationRepository.existsByPostIdAndApplicantId(postId, applicant.getId())) {
+            throw new ApplicationException(ErrorCode.DUPLICATE_APPLICATION);
+        }
+
+        // 5. 지원 엔티티 생성 및 저장
         JobApplication application = new JobApplication();
         application.setPost(post);
         application.setApplicant(applicant);
@@ -41,5 +46,6 @@ public class JobApplicationService {
         application.setCreatedAt(LocalDateTime.now());
 
         jobApplicationRepository.save(application);
+        jobPostRepository.incrementApplicantCount(postId);
     }
 }

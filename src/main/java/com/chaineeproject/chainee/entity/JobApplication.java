@@ -7,12 +7,17 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Getter
-@Setter
-@Table(name = "job_application")
+@Getter @Setter
+@Table(
+        name = "job_application",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_job_application_post_applicant",
+                columnNames = {"post_id","applicant_id"}
+        )
+)
 public class JobApplication {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)

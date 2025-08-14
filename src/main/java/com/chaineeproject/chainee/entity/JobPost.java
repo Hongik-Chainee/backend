@@ -41,4 +41,8 @@ public class JobPost {
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
+
+    @Builder.Default
+    @Column(name = "applicant_count", nullable = false)
+    private long applicantCount = 0L;
 }

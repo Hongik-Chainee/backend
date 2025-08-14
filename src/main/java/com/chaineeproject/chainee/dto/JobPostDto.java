@@ -12,5 +12,6 @@ public record JobPostDto(
         String description,
         BigDecimal payment,
         String requiredSkills,
-        LocalDate deadline
+        LocalDate deadline,
+        long applicantCount
 ) {}
