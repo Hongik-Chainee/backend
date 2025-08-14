@@ -41,14 +41,12 @@ public class User {
 
     @ElementCollection
     @CollectionTable(name = "user_positions", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "position_name") // <- 안전한 컬럼명으로 지정 (position 함수 혼동 방지)
+    @Column(name = "position_name")
     private List<String> positions = new ArrayList<>();
 
-    // ✅ 예약어 회피: DB 컬럼명을 from_univ 로 변경 (자바 필드명/DTO 명은 그대로 유지해도 됨)
     @Column(name = "from_univ")
     private String from;
 
-    // 명시적으로 컬럼명 지정(가독성)
     @Column(name = "in_location")
     private String inLocation;
 
