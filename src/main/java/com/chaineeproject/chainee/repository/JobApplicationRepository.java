@@ -4,4 +4,6 @@ import com.chaineeproject.chainee.entity.JobApplication;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface JobApplicationRepository extends JpaRepository<JobApplication, Long> {
+    boolean existsByPostIdAndApplicantId(Long postId, Long applicantId);
+    long countByPostId(Long postId);
 }

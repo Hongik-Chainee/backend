@@ -26,12 +26,13 @@ public class ProfileController {
     @Operation(
             summary = "사용자 프로필 조회",
             description = """
-        해당 userId의 프로필 정보를 반환합니다.
-        - ✅ 본인이면 모든 내 프로젝트가 보입니다.
-        - ❌ 타인이면 공개 프로젝트만 보입니다.
-        - 대표 프로젝트는 지정값이 우선, 없거나(또는 타인에게 비공개이면) 최신(완료일→생성일) 프로젝트로 자동 선정됩니다.
-        - followerCount / followingCount / isFollowing(요청자 기준) 포함
-        """,
+            해당 userId의 프로필 정보를 반환합니다.
+            - ✅ 본인이면 모든 내 프로젝트가 보입니다.
+            - ❌ 타인이면 공개 프로젝트만 보입니다.
+            - 대표 프로젝트는 지정값이 우선, 없거나(또는 타인에게 비공개이면) 최신(완료일→생성일) 프로젝트로 자동 선정됩니다.
+            - followerCount / followingCount / isFollowing(요청자 기준) 포함
+            - 각 jobPosts 항목에는 applicantCount(지원자 수) 포함
+            """,
             responses = {
                     @ApiResponse(
                             responseCode = "200",
@@ -43,57 +44,77 @@ public class ProfileController {
                                             @ExampleObject(
                                                     name = "Owner view",
                                                     value = """
-                                                {
-                                                  "id": 1,
-                                                  "email": "me@example.com",
-                                                  "name": "Yoonseo Lee",
-                                                  "profileImageUrl": "https://cdn.example.com/u/1.png",
-                                                  "positions": ["Designer", "Illustrator"],
-                                                  "from": "Hongik Univ",
-                                                  "in": "Seoul, Republic of Korea",
-                                                  "website": "https://www.yoonseolee.com",
-                                                  "introductionHeadline": "Branding designer",
-                                                  "introductionContent": "Hi! I'm a branding designer, just graduated.",
-                                                  "introductionPhotoUrl": "https://cdn.example.com/u/1-cover.png",
-                                                  "mainProject": { "id": 11, "title": "Portfolio 2025", "nftTokenUri": "ipfs://...", "completedAt": "2025-07-01T12:00:00", "isPublic": true },
-                                                  "myProjects": [
-                                                    { "id": 11, "title": "Portfolio 2025", "nftTokenUri": "ipfs://...", "completedAt": "2025-07-01T12:00:00", "isPublic": true },
-                                                    { "id": 12, "title": "Client A", "nftTokenUri": "ipfs://...", "completedAt": "2025-05-20T09:00:00", "isPublic": false }
-                                                  ],
-                                                  "jobPosts": [],
-                                                  "resumes": [],
-                                                  "followerCount": 128,
-                                                  "followingCount": 64,
-                                                  "isFollowing": false
-                                                }
-                                                """
+                                                    {
+                                                      "id": 1,
+                                                      "email": "me@example.com",
+                                                      "name": "Yoonseo Lee",
+                                                      "profileImageUrl": "https://cdn.example.com/u/1.png",
+                                                      "positions": ["Designer", "Illustrator"],
+                                                      "from": "Hongik Univ",
+                                                      "in": "Seoul, Republic of Korea",
+                                                      "website": "https://www.yoonseolee.com",
+                                                      "introductionHeadline": "Branding designer",
+                                                      "introductionContent": "Hi! I'm a branding designer, just graduated.",
+                                                      "introductionPhotoUrl": "https://cdn.example.com/u/1-cover.png",
+                                                      "mainProject": { "id": 11, "title": "Portfolio 2025", "nftTokenUri": "ipfs://...", "completedAt": "2025-07-01T12:00:00", "isPublic": true },
+                                                      "myProjects": [
+                                                        { "id": 11, "title": "Portfolio 2025", "nftTokenUri": "ipfs://...", "completedAt": "2025-07-01T12:00:00", "isPublic": true },
+                                                        { "id": 12, "title": "Client A", "nftTokenUri": "ipfs://...", "completedAt": "2025-05-20T09:00:00", "isPublic": false }
+                                                      ],
+                                                      "jobPosts": [
+                                                        {
+                                                          "id": 101,
+                                                          "title": "백엔드 개발자 구합니다",
+                                                          "description": "Spring Boot 프로젝트 개발자 모집",
+                                                          "payment": 1500000,
+                                                          "requiredSkills": "[\\"Java\\", \\"Spring Boot\\", \\"JPA\\"]",
+                                                          "deadline": "2025-09-30",
+                                                          "applicantCount": 3
+                                                        }
+                                                      ],
+                                                      "resumes": [],
+                                                      "followerCount": 128,
+                                                      "followingCount": 64,
+                                                      "isFollowing": false
+                                                    }
+                                                    """
                                             ),
                                             @ExampleObject(
                                                     name = "Public view",
                                                     value = """
-                                                {
-                                                  "id": 1,
-                                                  "email": "user@example.com",
-                                                  "name": "Yoonseo Lee",
-                                                  "profileImageUrl": "https://cdn.example.com/u/1.png",
-                                                  "positions": ["Designer", "Illustrator"],
-                                                  "from": "Hongik Univ",
-                                                  "in": "Seoul, Republic of Korea",
-                                                  "website": "https://www.yoonseolee.com",
-                                                  "introductionHeadline": "Branding designer",
-                                                  "introductionContent": "Hi! I'm a branding designer, just graduated.",
-                                                  "introductionPhotoUrl": "https://cdn.example.com/u/1-cover.png",
-                                                  "mainProject": { "id": 11, "title": "Portfolio 2025", "nftTokenUri": "ipfs://...", "completedAt": "2025-07-01T12:00:00", "isPublic": true },
-                                                  "myProjects": [
-                                                    { "id": 11, "title": "Portfolio 2025", "nftTokenUri": "ipfs://...", "completedAt": "2025-07-01T12:00:00", "isPublic": true }
-                                                  ],
-                                                  "jobPosts": [],
-                                                  "resumes": [],
-                                                  "followerCount": 128,
-                                                  "followingCount": 64,
-                                                  "isFollowing": true
-                                                }
-                                                """
+                                                    {
+                                                      "id": 1,
+                                                      "email": "user@example.com",
+                                                      "name": "Yoonseo Lee",
+                                                      "profileImageUrl": "https://cdn.example.com/u/1.png",
+                                                      "positions": ["Designer", "Illustrator"],
+                                                      "from": "Hongik Univ",
+                                                      "in": "Seoul, Republic of Korea",
+                                                      "website": "https://www.yoonseolee.com",
+                                                      "introductionHeadline": "Branding designer",
+                                                      "introductionContent": "Hi! I'm a branding designer, just graduated.",
+                                                      "introductionPhotoUrl": "https://cdn.example.com/u/1-cover.png",
+                                                      "mainProject": { "id": 11, "title": "Portfolio 2025", "nftTokenUri": "ipfs://...", "completedAt": "2025-07-01T12:00:00", "isPublic": true },
+                                                      "myProjects": [
+                                                        { "id": 11, "title": "Portfolio 2025", "nftTokenUri": "ipfs://...", "completedAt": "2025-07-01T12:00:00", "isPublic": true }
+                                                      ],
+                                                      "jobPosts": [
+                                                        {
+                                                          "id": 101,
+                                                          "title": "백엔드 개발자 구합니다",
+                                                          "description": "Spring Boot 프로젝트 개발자 모집",
+                                                          "payment": 1500000,
+                                                          "requiredSkills": "[\\"Java\\", \\"Spring Boot\\", \\"JPA\\"]",
+                                                          "deadline": "2025-09-30",
+                                                          "applicantCount": 3
+                                                        }
+                                                      ],
+                                                      "resumes": [],
+                                                      "followerCount": 128,
+                                                      "followingCount": 64,
+                                                      "isFollowing": true
+                                                    }
+                                                    """
                                             )
                                     }
                             )
@@ -105,8 +126,8 @@ public class ProfileController {
                                     mediaType = "application/json",
                                     examples = @ExampleObject(
                                             value = """
-                                        {"status":404,"message":"사용자를 찾을 수 없습니다."}
-                                        """
+                                            {"status":404,"message":"사용자를 찾을 수 없습니다."}
+                                            """
                                     )
                             )
                     )
@@ -114,7 +135,6 @@ public class ProfileController {
     )
     @GetMapping("/{userId}")
     public ResponseEntity<ProfileResponse> getProfile(
-            // 실제 프로젝트의 Principal 타입에 맞게 변경(예: UserPrincipal). 아래 표현식은 principal.getId()를 가정.
             @AuthenticationPrincipal(expression = "id") Long requesterUserId,
             @PathVariable Long userId
     ) {

@@ -64,7 +64,8 @@ public class ProfileService {
                         p.getDescription(),
                         p.getPayment(),
                         p.getRequiredSkills(),
-                        p.getDeadline()
+                        p.getDeadline(),
+                        p.getApplicantCount()
                 ))
                 .toList();
 

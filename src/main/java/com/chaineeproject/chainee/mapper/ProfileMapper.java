@@ -121,7 +121,8 @@ public class ProfileMapper {
                 j.getDescription(),
                 j.getPayment(),
                 j.getRequiredSkills(),
-                j.getDeadline()
+                j.getDeadline(),
+                j.getApplicantCount()
         );
     }
 
