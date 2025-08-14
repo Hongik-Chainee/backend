@@ -1,16 +1,14 @@
 package com.chaineeproject.chainee.dto;
 
-import lombok.Builder;
-import lombok.Data;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.LocalDateTime;
 
-@Data
-@Builder
-public class ProjectDto {
-    private Long id;
-    private String title;
-    private String nftTokenUri;
-    private LocalDateTime completedAt;
-    private Boolean isPublic;
-}
+@Schema(description = "프로젝트 DTO")
+public record ProjectDto(
+        Long id,
+        String title,
+        String nftTokenUri,
+        LocalDateTime completedAt,
+        Boolean isPublic
+) {}

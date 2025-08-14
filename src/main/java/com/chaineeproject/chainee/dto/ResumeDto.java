@@ -1,17 +1,15 @@
 package com.chaineeproject.chainee.dto;
 
-import lombok.Builder;
-import lombok.Data;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@Data
-@Builder
-public class ResumeDto {
-    private Long id;
-    private String title;
-    private String name;
-    private String introduction;
-    private String desiredPosition;
-    private String skills;
-    private String careerLevel;
-    private String portfolioUrl;
-}
+@Schema(description = "이력서 DTO")
+public record ResumeDto(
+        Long id,
+        String title,
+        String name,
+        String introduction,
+        String desiredPosition,
+        String skills,
+        String careerLevel,
+        String portfolioUrl
+) {}
