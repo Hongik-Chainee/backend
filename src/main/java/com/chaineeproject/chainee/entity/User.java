@@ -34,19 +34,25 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    /** ===== [프로필 관련 필드 추가] ===== */
+    /** ===== [프로필 관련 필드] ===== */
 
     private String profileImageUrl; // 프로필 사진
     private String name;
 
     @ElementCollection
     @CollectionTable(name = "user_positions", joinColumns = @JoinColumn(name = "user_id"))
-    @Column(name = "position")
-    private List<String> positions = new ArrayList<>(); // 여러 포지션 가능
+    @Column(name = "position_name") // <- 안전한 컬럼명으로 지정 (position 함수 혼동 방지)
+    private List<String> positions = new ArrayList<>();
 
-    private String from; // ex. Hongik Univ
-    private String inLocation; // ex. Seoul, Republic of Korea
-    private String website; // ex. https://www.yeoeunn.com
+    // ✅ 예약어 회피: DB 컬럼명을 from_univ 로 변경 (자바 필드명/DTO 명은 그대로 유지해도 됨)
+    @Column(name = "from_univ")
+    private String from;
+
+    // 명시적으로 컬럼명 지정(가독성)
+    @Column(name = "in_location")
+    private String inLocation;
+
+    private String website;
 
     private String introductionHeadline;
 
@@ -56,23 +62,19 @@ public class User {
     private String introductionPhotoUrl;
 
     /** ===== [연관 관계] ===== */
-
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<JobPost> jobPosts = new ArrayList<>();
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Resume> resumes = new ArrayList<>();
 
-    // 프로젝트: 완료한 프로젝트들 (NFT 기반)
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Project> myProjects = new ArrayList<>();
 
-    // 대표 프로젝트 (선택 or 최근 완료 자동 선택)
     @OneToOne
     @JoinColumn(name = "main_project_id")
     private Project mainProject;
 
-    // 보관한 프로젝트 (타인 비공개)
     @ManyToMany
     @JoinTable(
             name = "user_stored_projects",
@@ -82,7 +84,6 @@ public class User {
     private List<Project> storedProjects = new ArrayList<>();
 
     /** ===== [생성/수정 자동화] ===== */
-
     @PrePersist
     protected void onCreate() {
         this.createdAt = this.updatedAt = LocalDateTime.now();
