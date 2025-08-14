@@ -63,31 +63,49 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            set -eux
+            set -Eeuo pipefail
+
             REL_DIR="/home/${{ secrets.SSH_USER }}/chainee/releases"
             TARGET_JAR="/home/${{ secrets.SSH_USER }}/chainee/build/libs/chainee-0.0.1-SNAPSHOT.jar"
-            LATEST_JAR=$(ls -t "$REL_DIR"/*.jar | head -n 1)
+
+            # 최신 JAR 선택
+            LATEST_JAR=$(ls -t "$REL_DIR"/*.jar | grep -v -E 'plain|original' | head -n 1 || true)
+            if [ -z "$LATEST_JAR" ]; then
+              echo "No JAR found in $REL_DIR"; exit 1
+            fi
+            echo "Latest: $LATEST_JAR"
 
             echo "Stopping service..."
             sudo systemctl stop chainee-backend || true
-            pkill -f 'java.*chainee' || true
 
-            # 보관 경로 존재 보장
+            # 남아있는 자바 프로세스만 있을 때 안전 종료(없으면 넘어감)
+            if pgrep -f 'java.*chainee' >/dev/null 2>&1; then
+              echo "Killing stray java processes..."
+              pkill -15 -f 'java.*chainee' || true
+              sleep 2
+              if pgrep -f 'java.*chainee' >/dev/null 2>&1; then
+                echo "Force kill..."
+                pkill -9 -f 'java.*chainee' || true
+              fi
+            fi
+
+            # 배포 대상 디렉터리 보장
             mkdir -p "$(dirname "$TARGET_JAR")"
 
-            # 유닛이 바라보는 파일로 '덮어쓰기' 배포
+            # 유닛이 바라보는 경로로 '덮어쓰기'
             cp -f "$LATEST_JAR" "$TARGET_JAR"
             sudo chown ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} "$TARGET_JAR"
             sudo chmod +x "$TARGET_JAR"
 
-            # releases 폴더는 최신 1개만 보존(누적 방지)
-            (ls -t "$REL_DIR"/*.jar | tail -n +2 | xargs -r rm -f)
+            # releases 폴더는 최신 1개만 남기고 정리(누적 방지)
+            ls -t "$REL_DIR"/*.jar | tail -n +2 | xargs -r rm -f
 
             echo "Starting service..."
             sudo systemctl daemon-reload
             sudo systemctl start chainee-backend
 
-            echo "Service status:"
-            sudo systemctl status chainee-backend --no-pager || true
+            echo "Service is-active:"
+            sudo systemctl is-active chainee-backend || true
+
             echo "Last logs:"
             sudo journalctl -u chainee-backend -n 80 --no-pager || true
