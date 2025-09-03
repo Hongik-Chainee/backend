@@ -31,6 +31,10 @@ public class Project {
     @Column(nullable = false)
     private boolean isPublic = true;
 
+    @Lob
+    @Column(name = "required_skills")
+    private String requiredSkills;
+
     @org.hibernate.annotations.CreationTimestamp
     @Column(updatable = false, nullable = false)
     private LocalDateTime createdAt;
