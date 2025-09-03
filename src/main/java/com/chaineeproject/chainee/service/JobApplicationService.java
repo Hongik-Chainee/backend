@@ -2,10 +2,12 @@ package com.chaineeproject.chainee.service;
 
 import com.chaineeproject.chainee.dto.JobApplicationRequest;
 import com.chaineeproject.chainee.entity.*;
+import com.chaineeproject.chainee.event.JobApplicationCreatedEvent;
 import com.chaineeproject.chainee.exception.ApplicationException;
 import com.chaineeproject.chainee.exception.ErrorCode;
 import com.chaineeproject.chainee.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -18,6 +20,7 @@ public class JobApplicationService {
     private final JobPostRepository jobPostRepository;
     private final ResumeRepository resumeRepository;
     private final JobApplicationRepository jobApplicationRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public void applyToJob(Long postId, JobApplicationRequest request) {
         // 1. 지원자 조회
@@ -47,5 +50,6 @@ public class JobApplicationService {
 
         jobApplicationRepository.save(application);
         jobPostRepository.incrementApplicantCount(postId);
+        eventPublisher.publishEvent(new JobApplicationCreatedEvent(application.getId()));
     }
 }
