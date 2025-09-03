@@ -17,5 +17,5 @@ public record JobPostListItem(
         LocalDate deadline,
         LocalDateTime createdAt,
         long applicantCount,
-        ProfileHeaderDto author
+        AuthorHeader author
 ) {}
