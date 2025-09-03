@@ -6,6 +6,7 @@ import com.chaineeproject.chainee.event.JobApplicationCreatedEvent;
 import com.chaineeproject.chainee.exception.ApplicationException;
 import com.chaineeproject.chainee.exception.ErrorCode;
 import com.chaineeproject.chainee.repository.*;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ public class JobApplicationService {
     private final JobApplicationRepository jobApplicationRepository;
     private final ApplicationEventPublisher eventPublisher;
 
+    @Transactional
     public void applyToJob(Long postId, JobApplicationRequest request) {
         // 1. 지원자 조회
         User applicant = userRepository.findByDid(request.applicantDid())
