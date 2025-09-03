@@ -4,7 +4,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
 @Schema(description = "공고 작성자 헤더 정보")
-public record ProfileHeaderDto(
+public record AuthorHeader(
         Long id,
         String name,
         String profileImageUrl,
