@@ -3,6 +3,7 @@ package com.chaineeproject.chainee.controller;
 import com.chaineeproject.chainee.dto.MainProjectUpdateRequest;
 import com.chaineeproject.chainee.dto.ProfileResponse;
 import com.chaineeproject.chainee.dto.ProfileUpdateRequest;
+import com.chaineeproject.chainee.dto.ProjectVisibilityUpdateRequest;
 import com.chaineeproject.chainee.service.ProfileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -211,6 +212,66 @@ public class ProfileController {
             @RequestBody MainProjectUpdateRequest req
     ) {
         ProfileResponse response = profileService.updateMainProject(currentUserId, req);
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/me/projects/{projectId}/visibility")
+    @Operation(
+            summary = "프로젝트 공개/비공개 설정",
+            description = """
+                단일 프로젝트의 공개 여부를 변경합니다.
+                - 본인 소유 프로젝트만 변경 가능
+                - 대표 프로젝트는 반드시 공개여야 하며, 비공개로 설정 시 400 에러
+                - 성공 시 최신 프로필(소유자 뷰) 반환
+                """,
+            requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
+                    required = true,
+                    content = @Content(
+                            mediaType = "application/json",
+                            schema = @Schema(implementation = ProjectVisibilityUpdateRequest.class),
+                            examples = {
+                                    @ExampleObject(name = "공개로 전환", value = "{\"isPublic\": true}"),
+                                    @ExampleObject(name = "비공개로 전환", value = "{\"isPublic\": false}")
+                            }
+                    )
+            ),
+            responses = {
+                    @ApiResponse(
+                            responseCode = "200",
+                            description = "수정된 프로필 반환",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    schema = @Schema(implementation = ProfileResponse.class)
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "400",
+                            description = "대표 프로젝트 비공개 시도 / 잘못된 요청",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    examples = @ExampleObject(
+                                            value = "{\"status\":400,\"message\":\"대표 프로젝트는 비공개로 설정할 수 없습니다.\"}"
+                                    )
+                            )
+                    ),
+                    @ApiResponse(
+                            responseCode = "403",
+                            description = "본인 소유 아님",
+                            content = @Content(
+                                    mediaType = "application/json",
+                                    examples = @ExampleObject(
+                                            value = "{\"status\":403,\"message\":\"본인 프로젝트만 공개 여부를 변경할 수 있습니다.\"}"
+                                    )
+                            )
+                    )
+            }
+    )
+    public ResponseEntity<ProfileResponse> updateProjectVisibility(
+            @AuthenticationPrincipal(expression = "id") Long currentUserId,
+            @PathVariable Long projectId,
+            @RequestBody ProjectVisibilityUpdateRequest req
+    ) {
+        ProfileResponse response = profileService.updateProjectVisibility(currentUserId, projectId, req);
         return ResponseEntity.ok(response);
     }
 }
