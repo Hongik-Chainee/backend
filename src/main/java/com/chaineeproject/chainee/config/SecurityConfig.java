@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -25,11 +26,11 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> {}) // CORS 허용
+                .cors(cors -> {})
                 .csrf(csrf -> csrf.disable()) // CSRF 비활성화
                 .headers(headers -> headers.frameOptions(frame -> frame.disable())) // H2 콘솔 허용
                 .authorizeHttpRequests(auth -> auth
-                        .anyRequest().permitAll() // ✅ 모든 요청 허용
+                        .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth -> oauth
                         .loginPage("/login")
@@ -51,7 +52,8 @@ public class SecurityConfig {
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOriginPattern("http://localhost:3000"); // 프론트 도메인
+        config.addAllowedOriginPattern("http://localhost:3000");
+        config.addAllowedOriginPattern("http://localhost:5173");
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         config.setAllowCredentials(true);
