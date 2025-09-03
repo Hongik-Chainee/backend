@@ -35,7 +35,7 @@ public class JobPost {
     @Column(name = "required_skills")
     private String requiredSkills; // JSON 문자열로 저장
 
-    private String duration; // "6m", "1y" 등
+    private String duration; // 공고 지속 기간(공고 마감날로 수정 필요)
 
     private LocalDate deadline;
 

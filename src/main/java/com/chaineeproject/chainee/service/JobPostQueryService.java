@@ -1,3 +1,4 @@
+// src/main/java/com/chaineeproject/chainee/service/JobPostQueryService.java
 package com.chaineeproject.chainee.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -12,103 +13,93 @@ import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class JobPostQueryService {
 
+    public enum SortBy {
+        RECENT,            // createdAt DESC
+        DEADLINE_ASC,      // deadline ASC
+        DEADLINE_DESC,     // deadline DESC
+        PAYMENT_ASC,       // payment ASC
+        PAYMENT_DESC,      // payment DESC
+        APPLICANTS_DESC    // applicantCount DESC
+    }
+
     private final JobPostRepository jobPostRepository;
     private final FollowRepository followRepository;
     private final ObjectMapper objectMapper;
 
-    public PagedJobPostsResponse list(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        Page<JobPost> p = jobPostRepository.findAll(pageable);
-
-        List<JobPostListItem> items = p.getContent().stream()
-                .map(this::toListItem)
-                .toList();
-
-        return new PagedJobPostsResponse(
-                p.getTotalElements(),
-                p.getTotalPages(),
-                p.getNumber(),
-                p.getSize(),
-                items
-        );
+    /** 전체 목록(작성자 필터 없음) */
+    public PagedJobPostsResponse list(int page, int size, SortBy sortBy) {
+        Page<JobPost> p = jobPostRepository.findAll(PageRequest.of(page, size, toSort(sortBy)));
+        return mapToPaged(p);
     }
 
-    public JobPostDetail detail(Long postId) {
-        JobPost post = jobPostRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 공고를 찾을 수 없습니다. ID=" + postId));
-        return toDetail(post);
+    /** 검색 */
+    public PagedJobPostsResponse search(String q, int page, int size, SortBy sortBy) {
+        if (q == null || q.isBlank()) {
+            throw new IllegalArgumentException("검색어(q)는 비어 있을 수 없습니다.");
+        }
+        Page<JobPost> p = jobPostRepository.search(q.trim(), PageRequest.of(page, size, toSort(sortBy)));
+        return mapToPaged(p);
     }
 
-    // ====== mapping ======
-    private JobPostListItem toListItem(JobPost p) {
-        User a = p.getAuthor();
-        var authorHeader = new ProfileHeaderDto(
+    // ===== 내부 유틸 =====
+    private Sort toSort(SortBy sortBy) {
+        return switch (sortBy) {
+            case RECENT         -> Sort.by(Sort.Direction.DESC, "createdAt", "id");
+            case DEADLINE_ASC   -> Sort.by(Sort.Direction.ASC,  "deadline").and(Sort.by(Sort.Direction.DESC, "id"));
+            case DEADLINE_DESC  -> Sort.by(Sort.Direction.DESC, "deadline").and(Sort.by(Sort.Direction.DESC, "id"));
+            case PAYMENT_ASC    -> Sort.by(Sort.Direction.ASC,  "payment").and(Sort.by(Sort.Direction.DESC, "id"));
+            case PAYMENT_DESC   -> Sort.by(Sort.Direction.DESC, "payment").and(Sort.by(Sort.Direction.DESC, "id"));
+            case APPLICANTS_DESC-> Sort.by(Sort.Direction.DESC, "applicantCount").and(Sort.by(Sort.Direction.DESC, "id"));
+        };
+    }
+
+    private PagedJobPostsResponse mapToPaged(Page<JobPost> p) {
+        var items = p.getContent().stream().map(this::toListItem).toList();
+        return new PagedJobPostsResponse(p.getTotalElements(), p.getTotalPages(), p.getNumber(), p.getSize(), items);
+    }
+
+    private JobPostListItem toListItem(JobPost j) {
+        User a = j.getAuthor();
+
+        var author = new AuthorHeader(
                 a.getId(),
                 a.getName(),
                 a.getProfileImageUrl(),
                 a.getPositions(),
-                a.getFrom(),
+                a.getFrom(),      // 필드명이 fromUniv 등으로 변경되어 있다면 그걸 사용
                 a.getInLocation(),
                 a.getWebsite(),
                 followRepository.countByFolloweeId(a.getId()),
                 followRepository.countByFollowerId(a.getId())
         );
+
         return new JobPostListItem(
-                p.getId(),
-                p.getTitle(),
-                p.getDescription(),
-                p.getPayment(),
-                parseSkills(p.getRequiredSkills()),
-                p.getDuration(),
-                p.getDeadline(),
-                p.getCreatedAt(),
-                p.getApplicantCount(),
-                authorHeader
+                j.getId(),
+                j.getTitle(),
+                j.getDescription(),
+                j.getPayment(),
+                parseSkills(j.getRequiredSkills()),
+                j.getDuration(),
+                j.getDeadline(),
+                j.getCreatedAt(),
+                j.getApplicantCount(),
+                author
         );
     }
 
-    private JobPostDetail toDetail(JobPost p) {
-        User a = p.getAuthor();
-        var authorHeader = new ProfileHeaderDto(
-                a.getId(),
-                a.getName(),
-                a.getProfileImageUrl(),
-                a.getPositions(),
-                a.getFrom(),
-                a.getInLocation(),
-                a.getWebsite(),
-                followRepository.countByFolloweeId(a.getId()),
-                followRepository.countByFollowerId(a.getId())
-        );
-        return new JobPostDetail(
-                p.getId(),
-                p.getTitle(),
-                p.getDescription(),
-                p.getPayment(),
-                parseSkills(p.getRequiredSkills()),
-                p.getDuration(),
-                p.getDeadline(),
-                p.getCreatedAt(),
-                p.getApplicantCount(),
-                authorHeader
-        );
-    }
-
-    private List<String> parseSkills(String json) {
-        if (json == null || json.isBlank()) return Collections.emptyList();
+    private java.util.List<String> parseSkills(String json) {
+        if (json == null || json.isBlank()) return java.util.List.of();
         try {
-            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+            return objectMapper.readValue(json, new TypeReference<java.util.List<String>>() {});
         } catch (Exception e) {
-            // 파싱 실패 시 빈 리스트
-            return Collections.emptyList();
+            return java.util.List.of();
         }
     }
 }
