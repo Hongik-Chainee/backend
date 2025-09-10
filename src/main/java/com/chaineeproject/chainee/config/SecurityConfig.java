@@ -54,6 +54,9 @@ public class SecurityConfig {
         CorsConfiguration config = new CorsConfiguration();
         config.addAllowedOriginPattern("http://localhost:3000");
         config.addAllowedOriginPattern("http://localhost:5173");
+        config.addAllowedOriginPattern("https://chainee.store");
+        config.addAllowedOriginPattern("https://www.chainee.store");
+
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
         config.setAllowCredentials(true);
