@@ -1,10 +1,7 @@
-package com.chaineeproject.chainee.service;
+package com.chaineeproject.chainee.security;
 
 import com.chaineeproject.chainee.entity.User;
 import com.chaineeproject.chainee.repository.UserRepository;
-import com.chaineeproject.chainee.security.CustomOauth2UserDetails;
-import com.chaineeproject.chainee.security.GoogleUserDetails;
-import com.chaineeproject.chainee.security.OAuth2UserInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService;
