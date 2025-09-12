@@ -2,11 +2,11 @@ spring:
   datasource:
     url: jdbc:mysql://127.0.0.1:3306/chainee?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: chainee
-    password: ${DB_PASSWORD}  # 운영 환경은 무조건 환경변수 사용
+    password: ${DB_PASSWORD}
 
   jpa:
     hibernate:
-      ddl-auto: update  # 운영 환경에서는 위험 시 validate 또는 none 사용 고려
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:

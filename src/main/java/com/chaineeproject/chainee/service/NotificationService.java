@@ -43,7 +43,7 @@ public class NotificationService {
             Notification noti = Notification.builder()
                     .recipient(author)
                     .actor(applicant)
-                    .type(NotificationType.JOB_APPLICATION_RECEIVED)
+                    .notificationType(NotificationType.JOB_APPLICATION_RECEIVED)
                     .title(title)
                     .message(message)
                     .linkUrl(link)
@@ -96,7 +96,7 @@ public class NotificationService {
     private NotificationView toView(Notification n) {
         return new NotificationView(
                 n.getId(),
-                n.getType().name(),
+                n.getNotificationType().name(),
                 n.getTitle(),
                 n.getMessage(),
                 n.getLinkUrl(),

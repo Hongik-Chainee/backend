@@ -2,7 +2,7 @@ spring:
   application:
     name: chainee
   profiles:
-    active: prod  # 기본값: prod. 개발할 때는 dev로 변경
+    active: dev  # 기본값: prod. 개발할 때는 dev로 변경
 
   h2:
     console:
@@ -10,3 +10,4 @@ spring:
 
 server:
   port: 8080
+  forward-headers-strategy: framework
