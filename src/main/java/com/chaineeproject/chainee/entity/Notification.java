@@ -1,12 +1,13 @@
 package com.chaineeproject.chainee.entity;
 
 import com.chaineeproject.chainee.entity.enums.NotificationType;
+import jakarta.annotation.Resource;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notification", indexes = {
+@Table(name = "notifications", indexes = {
         @Index(name = "idx_notification_recipient_created_at", columnList = "recipient_id, created_at DESC"),
         @Index(name = "idx_notification_unread", columnList = "recipient_id, is_read")
 })
@@ -28,13 +29,13 @@ public class Notification {
     private User actor;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 40)
-    private NotificationType type;
+    @Column(name = "notification_type", nullable = false, length = 40)
+    private NotificationType notificationType;
 
     @Column(name = "title", nullable = false)
     private String title;      // 예: "새 지원이 도착했어요"
 
-    @Column(name = "message", columnDefinition = "TEXT")
+    @Column(name = "message", nullable = false)
     private String message;    // 예: "홍길동님이 <백엔드 개발자>에 지원했습니다."
 
     @Column(name = "link_url")
@@ -51,4 +52,5 @@ public class Notification {
         this.createdAt = LocalDateTime.now();
         this.read = false;
     }
+
 }
