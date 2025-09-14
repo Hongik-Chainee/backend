@@ -67,4 +67,7 @@ public class CustomOauth2UserDetails implements OAuth2User, UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
+    public boolean isKycVerified() { return user.isKycVerified(); }
+    public boolean isDidVerified() { return user.getDid() != null && !user.getDid().isBlank(); }
 }
