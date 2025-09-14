@@ -11,3 +11,8 @@ spring:
 server:
   port: 8080
   forward-headers-strategy: framework
+
+solapi:
+  api-key: ${SOLAPI_API_KEY}
+  api-secret: ${SOLAPI_API_SECRET}
+  from-number: "01077632181"

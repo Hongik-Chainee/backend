@@ -20,11 +20,22 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException {
-        CustomOauth2UserDetails userDetails = (CustomOauth2UserDetails) authentication.getPrincipal();
+        CustomOauth2UserDetails u = (CustomOauth2UserDetails) authentication.getPrincipal();
+
+        boolean kycDone = u.isKycVerified();
+        boolean didDone = u.isDidVerified();
+
+        String nextStep;
+        if (!kycDone) nextStep = "KYC";
+        else if (!didDone) nextStep = "DID";
+        else nextStep = "HOME";
 
         Map<String, Object> body = new HashMap<>();
         body.put("authenticated", true);
-        body.put("registered", !userDetails.isNewUser()); // false면 최초 로그인
+        body.put("registered", !u.isNewUser()); // 유지(첫 로그인 식별)
+        body.put("email", u.getUsername());
+        body.put("status", Map.of("kyc", kycDone, "did", didDone));
+        body.put("nextStep", nextStep);
 
         response.setContentType("application/json");
         response.setStatus(HttpServletResponse.SC_OK);

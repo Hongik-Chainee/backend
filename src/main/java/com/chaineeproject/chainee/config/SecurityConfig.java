@@ -25,13 +25,26 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .cors(cors -> {})
-                .csrf(csrf -> csrf.disable()) // CSRF 비활성화
-                .headers(headers -> headers.frameOptions(frame -> frame.disable())) // H2 콘솔 허용
+                .cors(cors -> {})                      // CORS는 아래 CorsFilter Bean 사용
+                .csrf(csrf -> csrf.disable())          // API 용도: CSRF 비활성
+                .headers(headers -> headers.frameOptions(frame -> frame.disable())) // H2 콘솔
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/swagger-ui/**","/v3/api-docs/**").permitAll()
+                        // 1) 공개 리소스
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/h2-console/**").permitAll()
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/login", "/oauth2/**").permitAll()
+                        .requestMatchers("/dev/mock-login").permitAll()
+
+                        // 2) 인증 필수 API (순서 중요: 광범위 /api/** 보다 위에 둔다)
+                        .requestMatchers("/api/kyc/**").authenticated()
+                        .requestMatchers("/api/did/**").authenticated()
+
+                        // 3) 그 외 API는 현행 유지(원하면 이후 점진적으로 tighten)
                         .requestMatchers("/api/**").permitAll()
+
+                        // 4) 나머지 전부 허용(정적/리다이렉트 등)
                         .anyRequest().permitAll()
                 )
                 .oauth2Login(oauth -> oauth
@@ -41,10 +54,17 @@ public class SecurityConfig {
                         .failureHandler(customOAuth2FailureHandler)
                 )
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint((request, response, authException) -> {
+                        // 인증 필요 자원 접근 시 401 JSON
+                        .authenticationEntryPoint((request, response, ex) -> {
                             response.setContentType("application/json");
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.getWriter().write("{\"success\": false, \"messageCode\": \"UNAUTHORIZED\"}");
+                            response.getWriter().write("{\"success\":false,\"messageCode\":\"UNAUTHORIZED\"}");
+                        })
+                        // 권한 부족 시 403 JSON (optional)
+                        .accessDeniedHandler((request, response, ex) -> {
+                            response.setContentType("application/json");
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.getWriter().write("{\"success\":false,\"messageCode\":\"FORBIDDEN\"}");
                         })
                 );
 
@@ -53,18 +73,23 @@ public class SecurityConfig {
 
     @Bean
     public CorsFilter corsFilter() {
-        CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOriginPattern("http://localhost:3000");
-        config.addAllowedOriginPattern("http://localhost:5173");
-        config.addAllowedOriginPattern("https://chainee.store");
-        config.addAllowedOriginPattern("https://www.chainee.store");
+        CorsConfiguration cfg = new CorsConfiguration();
+        // 프론트 도메인/포트 추가
+        cfg.addAllowedOriginPattern("http://localhost:3000");
+        cfg.addAllowedOriginPattern("http://localhost:5173");
+        cfg.addAllowedOriginPattern("https://chainee.store");
+        cfg.addAllowedOriginPattern("https://www.chainee.store");
 
-        config.addAllowedHeader("*");
-        config.addAllowedMethod("*");
-        config.setAllowCredentials(true);
+        cfg.addAllowedHeader("*");
+        cfg.addAllowedMethod("*");
+        cfg.setAllowCredentials(true);
+        // 프론트에서 쿠키/토큰 확인 시 노출 필요하면 헤더 노출
+        cfg.addExposedHeader("Authorization");
+        cfg.addExposedHeader("Set-Cookie");
+        cfg.setMaxAge(3600L); // preflight 캐시
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
+        source.registerCorsConfiguration("/**", cfg);
         return new CorsFilter(source);
     }
 }
