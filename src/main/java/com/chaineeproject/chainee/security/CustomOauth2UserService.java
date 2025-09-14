@@ -37,6 +37,8 @@ public class CustomOauth2UserService extends DefaultOAuth2UserService {
                     .email(userInfo.getEmail())
                     .provider(userInfo.getProvider())
                     .providerId(userInfo.getProviderId())
+                    .kycVerified(false)
+                    .did(null)
                     .build();
             userRepository.save(user);
             isNewUser = true;

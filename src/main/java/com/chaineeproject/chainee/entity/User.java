@@ -28,6 +28,12 @@ public class User {
     private String provider;
     private String providerId;
 
+    @Column(name = "kyc_verified", nullable = false)
+    private boolean kycVerified;        // 기본 false
+    @Column(name = "kyc_phone", length = 20)
+    private String kycPhone;
+    private LocalDateTime kycVerifiedAt;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
@@ -85,10 +91,13 @@ public class User {
     @PrePersist
     protected void onCreate() {
         this.createdAt = this.updatedAt = LocalDateTime.now();
+        if (!this.kycVerified) this.kycVerified = false;
     }
 
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
+
 }
