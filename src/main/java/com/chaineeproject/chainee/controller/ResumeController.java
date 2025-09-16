@@ -9,10 +9,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+import static com.chaineeproject.chainee.security.SecurityUtils.extractUserIdOrNull;
 
 @RestController
 @RequestMapping("/api/resumes")
@@ -78,9 +81,9 @@ public class ResumeController {
                                 ]
                             """)))
     )
-    public ResponseEntity<List<ResumeView>> getMyResumes(
-            @AuthenticationPrincipal(expression = "id") Long currentUserId
-    ) {
+    public ResponseEntity<List<ResumeView>> getMyResumes(Authentication authentication) {
+        Long currentUserId = extractUserIdOrNull(authentication);
+        if (currentUserId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(resumeService.getMyResumes(currentUserId));
     }
 
@@ -96,10 +99,10 @@ public class ResumeController {
                     @ApiResponse(responseCode = "403", description = "본인 소유 아님")
             }
     )
-    public ResponseEntity<ResumeView> getMyResume(
-            @AuthenticationPrincipal(expression = "id") Long currentUserId,
-            @PathVariable Long resumeId
-    ) {
+    public ResponseEntity<ResumeView> getMyResume(Authentication authentication,
+                                                  @PathVariable Long resumeId) {
+        Long currentUserId = extractUserIdOrNull(authentication);
+        if (currentUserId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(resumeService.getMyResume(currentUserId, resumeId));
     }
 
@@ -119,13 +122,11 @@ public class ResumeController {
                     @ApiResponse(responseCode = "404", description = "지원서/이력서 없음")
             }
     )
-    public ResponseEntity<ResumeView> getResumeForPostAuthor(
-            @AuthenticationPrincipal(expression = "id") Long currentUserId,
-            @PathVariable Long applicationId
-    ) {
-        return ResponseEntity.ok(
-                resumeService.getResumeByApplicationForPostAuthor(currentUserId, applicationId)
-        );
+    public ResponseEntity<ResumeView> getResumeForPostAuthor(Authentication authentication,
+                                                             @PathVariable Long applicationId) {
+        Long currentUserId = extractUserIdOrNull(authentication);
+        if (currentUserId == null) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(resumeService.getResumeByApplicationForPostAuthor(currentUserId, applicationId));
     }
 
     // ===== 수정(본인) =====
@@ -154,11 +155,11 @@ public class ResumeController {
                     @ApiResponse(responseCode = "403", description = "본인 소유 아님")
             }
     )
-    public ResponseEntity<ResumeView> updateMyResume(
-            @AuthenticationPrincipal(expression = "id") Long currentUserId,
-            @PathVariable Long resumeId,
-            @RequestBody ResumeUpdateRequest req
-    ) {
+    public ResponseEntity<ResumeView> updateMyResume(Authentication authentication,
+                                                     @PathVariable Long resumeId,
+                                                     @RequestBody ResumeUpdateRequest req) {
+        Long currentUserId = extractUserIdOrNull(authentication);
+        if (currentUserId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(resumeService.updateMyResume(currentUserId, resumeId, req));
     }
 }
