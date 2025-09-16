@@ -1,35 +1,55 @@
+// src/main/java/com/chaineeproject/chainee/config/SecurityConfig.java
 package com.chaineeproject.chainee.config;
 
+import com.chaineeproject.chainee.auth.KeyProvider;
+import com.chaineeproject.chainee.jwt.JwtProperties;
+import com.chaineeproject.chainee.security.CustomOauth2UserService;
 import com.chaineeproject.chainee.security.handler.CustomOAuth2FailureHandler;
 import com.chaineeproject.chainee.security.handler.CustomOAuth2SuccessHandler;
-import com.chaineeproject.chainee.security.CustomOauth2UserService;
+import com.chaineeproject.chainee.security.oauth.CookieOAuth2AuthorizationRequestRepository;
+import com.nimbusds.jose.JOSEException;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
+import java.security.interfaces.RSAPublicKey;
+
 @Configuration
-@RequiredArgsConstructor
 public class SecurityConfig {
 
     private final CustomOauth2UserService customOauth2UserService;
     private final CustomOAuth2FailureHandler customOAuth2FailureHandler;
     private final CustomOAuth2SuccessHandler customOAuth2SuccessHandler;
 
+    public SecurityConfig(CustomOauth2UserService s, CustomOAuth2FailureHandler f, CustomOAuth2SuccessHandler ok) {
+        this.customOauth2UserService = s;
+        this.customOAuth2FailureHandler = f;
+        this.customOAuth2SuccessHandler = ok;
+    }
+
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   CookieOAuth2AuthorizationRequestRepository cookieRepo) throws Exception {
         http
-                .cors(cors -> {})                      // CORS는 아래 CorsFilter Bean 사용
-                .csrf(csrf -> csrf.disable())          // API 용도: CSRF 비활성
-                .headers(headers -> headers.frameOptions(frame -> frame.disable())) // H2 콘솔
+                .cors(Customizer.withDefaults())
+                .csrf(csrf -> csrf.disable())
+                .headers(h -> h.frameOptions(f -> f.disable()))
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // ✅ 세션 완전 Off
+
                 .authorizeHttpRequests(auth -> auth
-                        // 1) 공개 리소스
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/error").permitAll()
@@ -37,7 +57,7 @@ public class SecurityConfig {
                         .requestMatchers("/login", "/oauth2/**").permitAll()
                         .requestMatchers("/dev/mock-login").permitAll()
 
-                        // 2) 인증 필수 API (순서 중요: 광범위 /api/** 보다 위에 둔다)
+                        // 인증 필수
                         .requestMatchers("/api/kyc/**").authenticated()
                         .requestMatchers("/api/did/**").authenticated()
                         .requestMatchers("/api/resumes/**").authenticated()
@@ -46,55 +66,74 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,   "/api/follow/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/follow/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/contracts/options/my-posts").authenticated()
-                        .requestMatchers(HttpMethod.GET,  "/api/notifications", "/api/notifications/unread-count").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/notifications", "/api/notifications/unread-count").authenticated()
                         .requestMatchers(HttpMethod.PATCH,"/api/notifications/**").authenticated()
 
-                        // 3) 그 외 API는 현행 유지(원하면 이후 점진적으로 tighten)
+                        // 점진적 보호 전까지
+                        .requestMatchers("/api/auth/**").permitAll() // refresh/logout/me 엔드포인트는 케이스에 따라 조정
                         .requestMatchers("/api/**").permitAll()
-
-                        // 4) 나머지 전부 허용(정적/리다이렉트 등)
                         .anyRequest().permitAll()
                 )
+
+                // ✅ OAuth2 state를 세션이 아닌 쿠키에 저장 (stateless)
                 .oauth2Login(oauth -> oauth
+                        .authorizationEndpoint(ae -> ae.authorizationRequestRepository(cookieRepo))
                         .loginPage("/login")
-                        .userInfoEndpoint(userInfo -> userInfo.userService(customOauth2UserService))
-                        .successHandler(customOAuth2SuccessHandler)
+                        .userInfoEndpoint(u -> u.userService(customOauth2UserService))
+                        .successHandler(customOAuth2SuccessHandler)   // 여기서 Access/Refresh 발급
                         .failureHandler(customOAuth2FailureHandler)
                 )
-                .exceptionHandling(exception -> exception
-                        // 인증 필요 자원 접근 시 401 JSON
-                        .authenticationEntryPoint((request, response, ex) -> {
-                            response.setContentType("application/json");
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.getWriter().write("{\"success\":false,\"messageCode\":\"UNAUTHORIZED\"}");
+
+                .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> { }))
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((req, res, e) -> {
+                            res.setContentType("application/json");
+                            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            res.getWriter().write("{\"success\":false,\"messageCode\":\"UNAUTHORIZED\"}");
                         })
-                        // 권한 부족 시 403 JSON (optional)
-                        .accessDeniedHandler((request, response, ex) -> {
-                            response.setContentType("application/json");
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.getWriter().write("{\"success\":false,\"messageCode\":\"FORBIDDEN\"}");
+                        .accessDeniedHandler((req, res, e) -> {
+                            res.setContentType("application/json");
+                            res.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            res.getWriter().write("{\"success\":false,\"messageCode\":\"FORBIDDEN\"}");
                         })
                 );
 
         return http.build();
     }
 
+
+    @Bean
+    public JwtDecoder jwtDecoder(KeyProvider keys, JwtProperties props) {
+        try {
+            RSAPublicKey publicKey = keys.currentKey().toRSAPublicKey();
+            NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(publicKey).build();
+            // iss 검증 추가(권장)
+            OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(props.issuer());
+            decoder.setJwtValidator(withIssuer);
+            return decoder;
+        } catch (JOSEException e) {
+            throw new IllegalStateException("Failed to extract RSA public key from JWK", e);
+        }
+    }
+
+    @Bean
+    public CookieOAuth2AuthorizationRequestRepository cookieOAuth2AuthorizationRequestRepository() {
+        return new CookieOAuth2AuthorizationRequestRepository("chainee.store"); // 쿠키 도메인
+    }
+
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration cfg = new CorsConfiguration();
-        // 프론트 도메인/포트 추가
         cfg.addAllowedOriginPattern("http://localhost:3000");
         cfg.addAllowedOriginPattern("http://localhost:5173");
         cfg.addAllowedOriginPattern("https://chainee.store");
         cfg.addAllowedOriginPattern("https://www.chainee.store");
-
         cfg.addAllowedHeader("*");
         cfg.addAllowedMethod("*");
         cfg.setAllowCredentials(true);
-        // 프론트에서 쿠키/토큰 확인 시 노출 필요하면 헤더 노출
         cfg.addExposedHeader("Authorization");
         cfg.addExposedHeader("Set-Cookie");
-        cfg.setMaxAge(3600L); // preflight 캐시
+        cfg.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", cfg);
