@@ -22,14 +22,13 @@ public interface JobPostRepository extends JpaRepository<JobPost, Long> {
     int incrementApplicantCount(Long postId);
 
     @Query("""
-        select jp
-        from JobPost jp
-        left join jp.author a
+        select p from JobPost p
+        left join p.author a
         where
-               lower(jp.title) like concat('%', lower(:q), '%')
-            or (jp.description is not null    and jp.description    like concat('%', :q, '%'))
-            or (jp.requiredSkills is not null and jp.requiredSkills like concat('%', :q, '%'))
-            or (a.name is not null            and lower(a.name)     like concat('%', lower(:q), '%'))
+            lower(p.title) like lower(concat('%', :q, '%'))
+         or lower(p.description) like lower(concat('%', :q, '%'))
+         or lower(a.name) like lower(concat('%', :q, '%'))
+         or p.requiredSkills like concat('%', :q, '%')
         """)
     Page<JobPost> search(@Param("q") String q, Pageable pageable);
 
