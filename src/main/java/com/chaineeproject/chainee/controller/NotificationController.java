@@ -9,8 +9,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import static com.chaineeproject.chainee.security.SecurityUtils.extractUserIdOrNull;
 
 @RestController
 @RequestMapping("/api/notifications")
@@ -53,36 +56,37 @@ public class NotificationController {
             )
     )
     public ResponseEntity<PagedNotificationsResponse> list(
-            @AuthenticationPrincipal(expression = "id") Long currentUserId,
+            Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
+        Long currentUserId = extractUserIdOrNull(authentication);
+        if (currentUserId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(notificationService.list(currentUserId, page, size));
     }
 
     @GetMapping("/unread-count")
     @Operation(summary = "미읽음 개수")
-    public ResponseEntity<Long> unreadCount(
-            @AuthenticationPrincipal(expression = "id") Long currentUserId
-    ) {
+    public ResponseEntity<Long> unreadCount(Authentication authentication) {
+        Long currentUserId = extractUserIdOrNull(authentication);
+        if (currentUserId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(notificationService.unreadCount(currentUserId));
     }
 
     @PatchMapping("/{notificationId}/read")
     @Operation(summary = "단건 읽음 처리")
-    public ResponseEntity<Void> markRead(
-            @AuthenticationPrincipal(expression = "id") Long currentUserId,
-            @PathVariable Long notificationId
-    ) {
+    public ResponseEntity<Void> markRead(Authentication authentication, @PathVariable Long notificationId) {
+        Long currentUserId = extractUserIdOrNull(authentication);
+        if (currentUserId == null) return ResponseEntity.status(401).build();
         notificationService.markRead(currentUserId, notificationId);
         return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/read-all")
     @Operation(summary = "모두 읽음 처리")
-    public ResponseEntity<Void> markAllRead(
-            @AuthenticationPrincipal(expression = "id") Long currentUserId
-    ) {
+    public ResponseEntity<Void> markAllRead(Authentication authentication) {
+        Long currentUserId = extractUserIdOrNull(authentication);
+        if (currentUserId == null) return ResponseEntity.status(401).build();
         notificationService.markAllRead(currentUserId);
         return ResponseEntity.noContent().build();
     }
