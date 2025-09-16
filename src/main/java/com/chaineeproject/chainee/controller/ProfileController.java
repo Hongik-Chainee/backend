@@ -13,8 +13,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import static com.chaineeproject.chainee.security.SecurityUtils.extractUserIdOrNull;
 
 @RestController
 @RequestMapping("/api/profile")
@@ -136,11 +139,11 @@ public class ProfileController {
     )
     @GetMapping("/{userId}")
     public ResponseEntity<ProfileResponse> getProfile(
-            @AuthenticationPrincipal(expression = "id") Long requesterUserId,
+            Authentication authentication,
             @PathVariable Long userId
     ) {
-        ProfileResponse response = profileService.getProfile(requesterUserId, userId);
-        return ResponseEntity.ok(response);
+        Long requesterUserId = extractUserIdOrNull(authentication);
+        return ResponseEntity.ok(profileService.getProfile(requesterUserId, userId));
     }
 
     @Operation(
@@ -177,11 +180,12 @@ public class ProfileController {
     )
     @PutMapping("/me")
     public ResponseEntity<ProfileResponse> updateProfile(
-            @AuthenticationPrincipal(expression = "id") Long currentUserId,
+            Authentication authentication,
             @RequestBody ProfileUpdateRequest req
     ) {
-        ProfileResponse response = profileService.updateProfile(currentUserId, req);
-        return ResponseEntity.ok(response);
+        Long currentUserId = extractUserIdOrNull(authentication);
+        // 이 엔드포인트는 SecurityConfig에서 authenticated()라서 여기까지 오면 null 아님
+        return ResponseEntity.ok(profileService.updateProfile(currentUserId, req));
     }
 
     @Operation(
@@ -208,11 +212,11 @@ public class ProfileController {
     )
     @PatchMapping("/me/main-project")
     public ResponseEntity<ProfileResponse> updateMainProject(
-            @AuthenticationPrincipal(expression = "id") Long currentUserId,
+            Authentication authentication,
             @RequestBody MainProjectUpdateRequest req
     ) {
-        ProfileResponse response = profileService.updateMainProject(currentUserId, req);
-        return ResponseEntity.ok(response);
+        Long currentUserId = extractUserIdOrNull(authentication);
+        return ResponseEntity.ok(profileService.updateMainProject(currentUserId, req));
     }
 
     @PatchMapping("/me/projects/{projectId}/visibility")
@@ -267,11 +271,11 @@ public class ProfileController {
             }
     )
     public ResponseEntity<ProfileResponse> updateProjectVisibility(
-            @AuthenticationPrincipal(expression = "id") Long currentUserId,
+            Authentication authentication,
             @PathVariable Long projectId,
             @RequestBody ProjectVisibilityUpdateRequest req
     ) {
-        ProfileResponse response = profileService.updateProjectVisibility(currentUserId, projectId, req);
-        return ResponseEntity.ok(response);
+        Long currentUserId = extractUserIdOrNull(authentication);
+        return ResponseEntity.ok(profileService.updateProjectVisibility(currentUserId, projectId, req));
     }
 }
