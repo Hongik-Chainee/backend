@@ -43,7 +43,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/resumes/**").authenticated()
                         .requestMatchers(HttpMethod.PUT,   "/api/profile/me").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/profile/**").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/follow/**").permitAll()
+                        .requestMatchers(HttpMethod.POST,   "/api/follow/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/follow/**").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/contracts/options/my-posts").authenticated()
 
                         // 3) 그 외 API는 현행 유지(원하면 이후 점진적으로 tighten)
                         .requestMatchers("/api/**").permitAll()
