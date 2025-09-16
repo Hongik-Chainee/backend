@@ -22,8 +22,14 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(unique = true)
+    @Column(unique = true, length = 255)
     private String did;
+
+    @Column(name = "did_nonce", length = 96)
+    private String didNonce;
+
+    @Column(name = "did_nonce_expires_at")
+    private java.time.LocalDateTime didNonceExpiresAt;
 
     private String provider;
     private String providerId;
@@ -99,5 +105,6 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-
+    public void setDidNonce(String n) { this.didNonce = n; }
+    public String getDidNonce() { return didNonce; }
 }

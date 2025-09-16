@@ -2,11 +2,23 @@ spring:
   application:
     name: chainee
   profiles:
-    active: prod  # 기본값: prod. 개발할 때는 dev로 변경
+    active: dev # 기본값: prod. 개발할 때는 dev로 변경
 
   h2:
     console:
       enabled: false  # 모든 환경에서 H2 콘솔 비활성화
+
+app:
+  jwt:
+    issuer: https://chainee.store
+    audience: chainee
+    access-ttl: 15m         # Access 토큰 만료 (Duration 문법 지원: 15m, 1h, 900s 등)
+    refresh-ttl: 14d        # Refresh 토큰 만료 (짧은 access를 안전하게 굴리면서 세션을 이어가고, 서버가 세션을 통제/차단하고, 상태변화(kyc/did)를 재발급 시점에 access에 반영하려고 필요)
+    clock-skew: 30s         # 허용 시계 오차
+    refresh-cookie-name: refresh_token
+    cookie:
+      secure: true
+      same-site: Lax
 
 server:
   port: 8080
