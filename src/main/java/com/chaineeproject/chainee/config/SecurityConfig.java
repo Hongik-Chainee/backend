@@ -40,6 +40,7 @@ public class SecurityConfig {
                         // 2) 인증 필수 API (순서 중요: 광범위 /api/** 보다 위에 둔다)
                         .requestMatchers("/api/kyc/**").authenticated()
                         .requestMatchers("/api/did/**").authenticated()
+                        .requestMatchers("/api/resumes/**").authenticated()
                         .requestMatchers(HttpMethod.PUT,   "/api/profile/me").authenticated()
                         .requestMatchers(HttpMethod.PATCH, "/api/profile/**").authenticated()
 
