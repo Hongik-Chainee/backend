@@ -46,6 +46,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST,   "/api/follow/**").authenticated()
                         .requestMatchers(HttpMethod.DELETE, "/api/follow/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/contracts/options/my-posts").authenticated()
+                        .requestMatchers(HttpMethod.GET,  "/api/notifications", "/api/notifications/unread-count").authenticated()
+                        .requestMatchers(HttpMethod.PATCH,"/api/notifications/**").authenticated()
 
                         // 3) 그 외 API는 현행 유지(원하면 이후 점진적으로 tighten)
                         .requestMatchers("/api/**").permitAll()
