@@ -3,6 +3,8 @@ package com.chaineeproject.chainee.controller;
 import com.chaineeproject.chainee.dto.PagedTalentsResponse;
 import com.chaineeproject.chainee.service.TalentQueryService;
 import com.chaineeproject.chainee.service.TalentQueryService.SortBy;
+import org.springframework.security.core.Authentication;
+import static com.chaineeproject.chainee.security.SecurityUtils.extractUserIdOrNull;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
@@ -114,12 +116,13 @@ public class TalentController {
             )
     )
     public ResponseEntity<PagedTalentsResponse> list(
-            @AuthenticationPrincipal(expression = "id") Long requesterUserId,
+            Authentication authentication,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "9") int size,
             @RequestParam(defaultValue = "RECENT") SortBy sort,
             @RequestParam(defaultValue = "true") boolean includeMainProject
     ) {
+        Long requesterUserId = extractUserIdOrNull(authentication);
         return ResponseEntity.ok(
                 talentQueryService.list(requesterUserId, page, size, sort, includeMainProject)
         );
@@ -213,13 +216,14 @@ public class TalentController {
             )
     )
     public ResponseEntity<PagedTalentsResponse> search(
-            @AuthenticationPrincipal(expression = "id") Long requesterUserId,
+            Authentication authentication,
             @RequestParam String q,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "9") int size,
             @RequestParam(defaultValue = "false") boolean includeMainProject,
             @RequestParam(defaultValue = "RECENT") SortBy sort
     ) {
+        Long requesterUserId = extractUserIdOrNull(authentication);
         return ResponseEntity.ok(
                 talentQueryService.search(requesterUserId, q, page, size, includeMainProject, sort)
         );
