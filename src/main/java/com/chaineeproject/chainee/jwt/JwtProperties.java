@@ -1,4 +1,3 @@
-// src/main/java/com/chaineeproject/chainee/config/JwtProperties.java
 package com.chaineeproject.chainee.jwt;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;

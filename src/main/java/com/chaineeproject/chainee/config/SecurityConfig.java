@@ -55,7 +55,9 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/login", "/oauth2/**").permitAll()
-                        .requestMatchers("/dev/mock-login").permitAll()
+
+                        .requestMatchers("/api/auth/refresh", "/api/auth/logout").permitAll()
+                        .requestMatchers("/api/auth/me").authenticated()
 
                         // 인증 필수
                         .requestMatchers("/api/kyc/**").authenticated()
@@ -69,13 +71,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/notifications", "/api/notifications/unread-count").authenticated()
                         .requestMatchers(HttpMethod.PATCH,"/api/notifications/**").authenticated()
 
-                        // 점진적 보호 전까지
-                        .requestMatchers("/api/auth/**").permitAll() // refresh/logout/me 엔드포인트는 케이스에 따라 조정
                         .requestMatchers("/api/**").permitAll()
                         .anyRequest().permitAll()
                 )
 
-                // ✅ OAuth2 state를 세션이 아닌 쿠키에 저장 (stateless)
                 .oauth2Login(oauth -> oauth
                         .authorizationEndpoint(ae -> ae.authorizationRequestRepository(cookieRepo))
                         .loginPage("/login")

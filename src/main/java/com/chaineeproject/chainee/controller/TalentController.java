@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -116,16 +117,14 @@ public class TalentController {
             )
     )
     public ResponseEntity<PagedTalentsResponse> list(
-            Authentication authentication,
+            @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "9") int size,
             @RequestParam(defaultValue = "RECENT") SortBy sort,
             @RequestParam(defaultValue = "true") boolean includeMainProject
     ) {
-        Long requesterUserId = extractUserIdOrNull(authentication);
-        return ResponseEntity.ok(
-                talentQueryService.list(requesterUserId, page, size, sort, includeMainProject)
-        );
+        Long requesterUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
+        return ResponseEntity.ok(talentQueryService.list(requesterUserId, page, size, sort, includeMainProject));
     }
 
     @GetMapping("/search")
@@ -216,16 +215,14 @@ public class TalentController {
             )
     )
     public ResponseEntity<PagedTalentsResponse> search(
-            Authentication authentication,
+            @AuthenticationPrincipal Jwt jwt,
             @RequestParam String q,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "9") int size,
             @RequestParam(defaultValue = "false") boolean includeMainProject,
             @RequestParam(defaultValue = "RECENT") SortBy sort
     ) {
-        Long requesterUserId = extractUserIdOrNull(authentication);
-        return ResponseEntity.ok(
-                talentQueryService.search(requesterUserId, q, page, size, includeMainProject, sort)
-        );
+        Long requesterUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
+        return ResponseEntity.ok(talentQueryService.search(requesterUserId, q, page, size, includeMainProject, sort));
     }
 }

@@ -1,4 +1,4 @@
-// src/main/java/com/chaineeproject/chainee/auth/AuthController.java
+// src/main/java/com/chaineeproject/chainee/controller/AuthController.java
 package com.chaineeproject.chainee.controller;
 
 import com.chaineeproject.chainee.auth.AuthService;
@@ -34,10 +34,12 @@ public class AuthController {
 
         var t = authService.rotate(c.getValue());
         int maxAge = (int) jwtProps.refreshTtl().toSeconds();
-        CookieUtil.addCookie(res, jwtProps.refreshCookieName(), t.refreshToken(),
-                "chainee.store",
+        CookieUtil.addCookie(
+                res, jwtProps.refreshCookieName(), t.refreshToken(),
+                cookieDomainFor(req),
                 true, Boolean.TRUE.equals(jwtProps.cookie().secure()),
-                jwtProps.cookie().sameSite(), maxAge);
+                jwtProps.cookie().sameSite(), maxAge
+        );
 
         return ResponseEntity.ok(Map.of(
                 "success", true,
@@ -51,10 +53,12 @@ public class AuthController {
     public ResponseEntity<?> logout(HttpServletRequest req, HttpServletResponse res) {
         Cookie c = CookieUtil.getCookie(req, jwtProps.refreshCookieName());
         if (c != null && !c.getValue().isBlank()) authService.logout(c.getValue());
-        CookieUtil.addCookie(res, jwtProps.refreshCookieName(), "",
-                "chainee.store",
+        CookieUtil.addCookie(
+                res, jwtProps.refreshCookieName(), "",
+                cookieDomainFor(req),
                 true, Boolean.TRUE.equals(jwtProps.cookie().secure()),
-                jwtProps.cookie().sameSite(), 0);
+                jwtProps.cookie().sameSite(), 0
+        );
         return ResponseEntity.ok(Map.of("success", true));
     }
 
@@ -63,5 +67,13 @@ public class AuthController {
         var uid = ((Number) jwt.getClaim("uid")).longValue();
         var email = (String) jwt.getClaim("email");
         return ResponseEntity.ok(Map.of("uid", uid, "email", email, "exp", jwt.getExpiresAt()));
+    }
+
+    private String cookieDomainFor(HttpServletRequest req) {
+        String host = req.getServerName();
+        if (host != null && (host.equals("chainee.store") || host.endsWith(".chainee.store"))) {
+            return "chainee.store";
+        }
+        return null; // 그 외(서브도메인/로컬)에는 HostOnly
     }
 }
