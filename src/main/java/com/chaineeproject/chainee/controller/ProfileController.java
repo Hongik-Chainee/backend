@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import static com.chaineeproject.chainee.security.SecurityUtils.extractUserIdOrNull;
@@ -139,10 +140,10 @@ public class ProfileController {
     )
     @GetMapping("/{userId}")
     public ResponseEntity<ProfileResponse> getProfile(
-            Authentication authentication,
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long userId
     ) {
-        Long requesterUserId = extractUserIdOrNull(authentication);
+        Long requesterUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
         return ResponseEntity.ok(profileService.getProfile(requesterUserId, userId));
     }
 
@@ -180,11 +181,10 @@ public class ProfileController {
     )
     @PutMapping("/me")
     public ResponseEntity<ProfileResponse> updateProfile(
-            Authentication authentication,
+            @AuthenticationPrincipal Jwt jwt,
             @RequestBody ProfileUpdateRequest req
     ) {
-        Long currentUserId = extractUserIdOrNull(authentication);
-        // 이 엔드포인트는 SecurityConfig에서 authenticated()라서 여기까지 오면 null 아님
+        Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
         return ResponseEntity.ok(profileService.updateProfile(currentUserId, req));
     }
 
@@ -212,10 +212,10 @@ public class ProfileController {
     )
     @PatchMapping("/me/main-project")
     public ResponseEntity<ProfileResponse> updateMainProject(
-            Authentication authentication,
+            @AuthenticationPrincipal Jwt jwt,
             @RequestBody MainProjectUpdateRequest req
     ) {
-        Long currentUserId = extractUserIdOrNull(authentication);
+        Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
         return ResponseEntity.ok(profileService.updateMainProject(currentUserId, req));
     }
 
@@ -271,11 +271,11 @@ public class ProfileController {
             }
     )
     public ResponseEntity<ProfileResponse> updateProjectVisibility(
-            Authentication authentication,
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long projectId,
             @RequestBody ProjectVisibilityUpdateRequest req
     ) {
-        Long currentUserId = extractUserIdOrNull(authentication);
+        Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
         return ResponseEntity.ok(profileService.updateProjectVisibility(currentUserId, projectId, req));
     }
 }

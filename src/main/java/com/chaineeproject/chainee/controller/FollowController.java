@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import static com.chaineeproject.chainee.security.SecurityUtils.extractUserIdOrNull;
@@ -25,10 +26,10 @@ public class FollowController {
     @PostMapping("/{targetUserId}")
     @Operation(summary = "팔로우", description = "타 사용자를 팔로우합니다.")
     public ResponseEntity<FollowActionResponse> follow(
-            Authentication authentication,
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long targetUserId
     ) {
-        Long currentUserId = extractUserIdOrNull(authentication);
+        Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
         if (currentUserId == null) {
             return ResponseEntity.status(401).body(new FollowActionResponse(false, "UNAUTHORIZED"));
         }
@@ -39,10 +40,10 @@ public class FollowController {
     @DeleteMapping("/{targetUserId}")
     @Operation(summary = "언팔로우", description = "타 사용자를 언팔로우합니다.")
     public ResponseEntity<FollowActionResponse> unfollow(
-            Authentication authentication,
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long targetUserId
     ) {
-        Long currentUserId = extractUserIdOrNull(authentication);
+        Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
         if (currentUserId == null) {
             return ResponseEntity.status(401).body(new FollowActionResponse(false, "UNAUTHORIZED"));
         }
