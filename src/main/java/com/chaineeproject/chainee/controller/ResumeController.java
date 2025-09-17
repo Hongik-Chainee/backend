@@ -9,13 +9,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-
-import static com.chaineeproject.chainee.security.SecurityUtils.extractUserIdOrNull;
 
 @RestController
 @RequestMapping("/api/resumes")
@@ -54,7 +52,13 @@ public class ResumeController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ResumeResponse.class)))
     )
-    public ResponseEntity<ResumeResponse> createResume(@Valid @RequestBody ResumeCreateRequest request) {
+    public ResponseEntity<ResumeResponse> createResume(
+            @AuthenticationPrincipal Jwt jwt,                 // 보안정책상 /api/resumes/** 가 authenticated 라면 주입
+            @Valid @RequestBody ResumeCreateRequest request
+    ) {
+        // 현재 정책이 DID 기반 생성이면 uid 없이 진행해도 됨.
+        // 만약 로그인 사용자의 소유로도 연결하려면 아래처럼 꺼내서 service로 전달:
+        // Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
         Long resumeId = resumeService.createResume(request);
         return ResponseEntity.ok(new ResumeResponse(true, "RESUME_CREATED", resumeId));
     }
@@ -81,8 +85,8 @@ public class ResumeController {
                                 ]
                             """)))
     )
-    public ResponseEntity<List<ResumeView>> getMyResumes(Authentication authentication) {
-        Long currentUserId = extractUserIdOrNull(authentication);
+    public ResponseEntity<List<ResumeView>> getMyResumes(@AuthenticationPrincipal Jwt jwt) {
+        Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
         if (currentUserId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(resumeService.getMyResumes(currentUserId));
     }
@@ -99,9 +103,11 @@ public class ResumeController {
                     @ApiResponse(responseCode = "403", description = "본인 소유 아님")
             }
     )
-    public ResponseEntity<ResumeView> getMyResume(Authentication authentication,
-                                                  @PathVariable Long resumeId) {
-        Long currentUserId = extractUserIdOrNull(authentication);
+    public ResponseEntity<ResumeView> getMyResume(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long resumeId
+    ) {
+        Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
         if (currentUserId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(resumeService.getMyResume(currentUserId, resumeId));
     }
@@ -122,9 +128,11 @@ public class ResumeController {
                     @ApiResponse(responseCode = "404", description = "지원서/이력서 없음")
             }
     )
-    public ResponseEntity<ResumeView> getResumeForPostAuthor(Authentication authentication,
-                                                             @PathVariable Long applicationId) {
-        Long currentUserId = extractUserIdOrNull(authentication);
+    public ResponseEntity<ResumeView> getResumeForPostAuthor(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long applicationId
+    ) {
+        Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
         if (currentUserId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(resumeService.getResumeByApplicationForPostAuthor(currentUserId, applicationId));
     }
@@ -155,10 +163,12 @@ public class ResumeController {
                     @ApiResponse(responseCode = "403", description = "본인 소유 아님")
             }
     )
-    public ResponseEntity<ResumeView> updateMyResume(Authentication authentication,
-                                                     @PathVariable Long resumeId,
-                                                     @RequestBody ResumeUpdateRequest req) {
-        Long currentUserId = extractUserIdOrNull(authentication);
+    public ResponseEntity<ResumeView> updateMyResume(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long resumeId,
+            @RequestBody ResumeUpdateRequest req
+    ) {
+        Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
         if (currentUserId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(resumeService.updateMyResume(currentUserId, resumeId, req));
     }

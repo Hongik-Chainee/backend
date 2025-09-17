@@ -1,3 +1,4 @@
+// src/main/java/com/chaineeproject/chainee/auth/JwtService.java
 package com.chaineeproject.chainee.jwt;
 
 import com.chaineeproject.chainee.auth.KeyProvider;
@@ -16,12 +17,15 @@ import java.util.Date;
 public class JwtService {
 
     private final KeyProvider keyProvider;
+    private final JwtProperties props;
 
     public String createAccessToken(Long uid, String email, boolean kyc, boolean did, long ttlSeconds) {
         var now = Instant.now();
         var exp = now.plusSeconds(ttlSeconds);
 
         var claims = new JWTClaimsSet.Builder()
+                .issuer(props.issuer())
+                .audience(props.audience())
                 .subject(String.valueOf(uid))
                 .issueTime(Date.from(now))
                 .expirationTime(Date.from(exp))
@@ -49,6 +53,8 @@ public class JwtService {
         var exp = now.plusSeconds(ttlSeconds);
 
         var claims = new JWTClaimsSet.Builder()
+                .issuer(props.issuer())
+                .audience(props.audience())
                 .subject(String.valueOf(uid))
                 .issueTime(Date.from(now))
                 .expirationTime(Date.from(exp))

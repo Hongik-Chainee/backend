@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import static com.chaineeproject.chainee.security.SecurityUtils.extractUserIdOrNull;
@@ -47,12 +48,9 @@ public class ContractOptionsController {
                     )
             )
     )
-    public ResponseEntity<MyContractPostsResponse> myPostOptions(Authentication authentication) {
-        Long currentUserId = extractUserIdOrNull(authentication);
-        if (currentUserId == null) {
-            // 비로그인 접근은 401
-            return ResponseEntity.status(401).build();
-        }
+    public ResponseEntity<MyContractPostsResponse> myPostOptions(@AuthenticationPrincipal Jwt jwt) {
+        Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
+        if (currentUserId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(contractOptionsService.myPostOptions(currentUserId));
     }
 }
