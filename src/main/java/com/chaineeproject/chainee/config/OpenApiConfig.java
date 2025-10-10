@@ -1,22 +1,26 @@
 package com.chaineeproject.chainee.config;
 
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.servers.Server;
-import org.springframework.context.annotation.Bean;
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.info.Info;
+import io.swagger.v3.oas.annotations.security.SecurityScheme;
+import io.swagger.v3.oas.annotations.servers.Server;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeType;
+import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.List;
-
 @Configuration
-public class OpenApiConfig {
-    @Bean
-    public OpenAPI openAPI() {
-        return new OpenAPI()
-                .servers(List.of(
-                        new Server().url("https://chainee.store"),
-                        new Server().url("http://localhost:8080")
-                ))
-                .info(new Info().title("Chainee API").version("v1"));
-    }
-}
+@OpenAPIDefinition(
+        info = @Info(title = "Chainee API", version = "v1"),
+        servers = {
+                @Server(url = "http://localhost:8080", description = "Local 8080"),
+                @Server(url = "https://chainee.store", description = "Prod")
+        }
+)
+@SecurityScheme(
+        name = "bearerAuth",
+        type = SecuritySchemeType.HTTP,
+        scheme = "bearer",
+        bearerFormat = "JWT",
+        in = SecuritySchemeIn.HEADER
+)
+public class OpenApiConfig {}
