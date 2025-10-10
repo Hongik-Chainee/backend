@@ -1,4 +1,3 @@
-// src/main/java/com/chaineeproject/chainee/security/handler/CustomOAuth2SuccessHandler.java
 package com.chaineeproject.chainee.security.handler;
 
 import com.chaineeproject.chainee.auth.AuthService;
@@ -19,15 +18,16 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 
 @RequiredArgsConstructor
 @Component
 @Slf4j
 public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
-    private final AuthService authService;   // Access/Refresh 발급
-    private final JwtProperties jwtProps;    // TTL/쿠키 정책
-    private final AppProperties appProps;    // 프론트 콜백 URL 구성
+    private final AuthService authService;
+    private final JwtProperties jwtProps;
+    private final AppProperties appProps;
 
     @Override
     public void onAuthenticationSuccess(
@@ -37,13 +37,13 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
 
         CustomOauth2UserDetails u = (CustomOauth2UserDetails) authentication.getPrincipal();
 
-        // 1) 토큰 한 번에 발급
+        // 1) 토큰 발급
         AuthTokens t = authService.issueFor(u.getUser());
 
-        // 2) 다음 단계 결정
+        // 2) 다음 단계
         String nextStep = !u.isKycVerified() ? "KYC" : (!u.isDidVerified() ? "DID" : "HOME");
 
-        // 3) Refresh 토큰은 HttpOnly 쿠키로 내려서 JS에서 읽히지 않게
+        // 3) Refresh 토큰을 HttpOnly 쿠키로
         int maxAge = (int) jwtProps.refreshTtl().toSeconds();
         boolean secure  = Boolean.TRUE.equals(jwtProps.cookie().secure());
         String sameSite = jwtProps.cookie().sameSite();
@@ -53,15 +53,16 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                 jwtProps.refreshCookieName(),
                 t.refreshToken(),
                 cookieDomain,
-                true,                // HttpOnly
-                secure,              // Secure
-                sameSite,            // e.g., Lax / None
+                true,               // HttpOnly
+                secure,             // Secure
+                sameSite,           // Lax/None 등
                 maxAge
         );
 
-        // 4) Access 토큰/상태는 URL fragment(#)로 전달 → 서버/프록시 로그에 남지 않음
-        //    예) https://app.chainee.store/auth/callback#accessToken=...&accessExp=...&nextStep=KYC&registered=true&email=...
-        String base = normalizeBase(appProps.frontendBaseUrl()) + appProps.oauth2().callbackPath();
+        // 4) 리다이렉트 대상 베이스 URL 자동 선택 (Origin/Referer와 yml 목록 비교)
+        String base = normalizeBase(chooseBase(request)) + appProps.oauth2().callbackPath();
+
+        // 5) Access 토큰/상태는 fragment로 전달
         String redirectUrl = buildFragmentUrl(
                 base,
                 "accessToken", t.accessToken(),
@@ -72,17 +73,31 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                 "email", u.getUsername()
         );
 
-        response.setStatus(HttpStatus.FOUND.value());   // 302
+        response.setStatus(HttpStatus.FOUND.value());
         response.setHeader("Location", redirectUrl);
-        // 바디 없음
     }
 
+    /** 요청 호스트가 운영 도메인(chainee.store)이면 Domain 지정, 아니면 로컬/개발은 null */
     private String cookieDomainFor(HttpServletRequest req) {
         String host = req.getServerName();
         if (host != null && (host.equals("chainee.store") || host.endsWith(".chainee.store"))) {
-            return "chainee.store"; // 운영에서만 Domain 지정
+            return "chainee.store";
         }
-        return null; // dev/local (localhost/127.0.0.1 등) 에서는 Domain 미지정
+        return null;
+    }
+
+    /** Origin/Referer와 yml의 허용 목록을 비교하여 베이스 URL 선택 */
+    private String chooseBase(HttpServletRequest req) {
+        String origin  = req.getHeader("Origin");
+        String referer = req.getHeader("Referer");
+        List<String> bases = appProps.effectiveBases();
+
+        for (String base : bases) {
+            if (origin != null && origin.startsWith(base))  return base;
+            if (referer != null && referer.startsWith(base)) return base;
+        }
+        // 매칭 실패 시 첫 번째, 없으면 빈 문자열
+        return bases.isEmpty() ? "" : bases.get(0);
     }
 
     private String normalizeBase(String base) {
