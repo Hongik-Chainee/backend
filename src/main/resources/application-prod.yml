@@ -35,6 +35,9 @@ app:
       secure: true
       same-site: Lax
 
-  frontend-baseurl: https://app.chainee.store
+  frontend-baseurls:
+    - http://localhost:3000
+    - https://app.chainee.store
+
   oauth2:
     callback-path: /auth/callback
