@@ -1,4 +1,3 @@
-// src/main/java/com/chaineeproject/chainee/config/SecurityConfig.java
 package com.chaineeproject.chainee.config;
 
 import com.chaineeproject.chainee.auth.KeyProvider;
@@ -9,6 +8,7 @@ import com.chaineeproject.chainee.security.handler.CustomOAuth2SuccessHandler;
 import com.chaineeproject.chainee.security.oauth.CookieOAuth2AuthorizationRequestRepository;
 import com.nimbusds.jose.JOSEException;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -26,8 +26,10 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 import java.security.interfaces.RSAPublicKey;
+import java.util.List;
 
 @Configuration
+@EnableConfigurationProperties(AppProperties.class) // ✅ AppProperties 바인딩 활성화
 public class SecurityConfig {
 
     private final CustomOauth2UserService customOauth2UserService;
@@ -47,7 +49,7 @@ public class SecurityConfig {
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .headers(h -> h.frameOptions(f -> f.disable()))
-                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // ✅ 세션 완전 Off
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
@@ -59,7 +61,6 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/refresh", "/api/auth/logout").permitAll()
                         .requestMatchers("/api/auth/me").authenticated()
 
-                        // 인증 필수
                         .requestMatchers("/api/kyc/**").authenticated()
                         .requestMatchers("/api/did/**").authenticated()
                         .requestMatchers("/api/resumes/**").authenticated()
@@ -79,7 +80,7 @@ public class SecurityConfig {
                         .authorizationEndpoint(ae -> ae.authorizationRequestRepository(cookieRepo))
                         .loginPage("/login")
                         .userInfoEndpoint(u -> u.userService(customOauth2UserService))
-                        .successHandler(customOAuth2SuccessHandler)   // 여기서 Access/Refresh 발급
+                        .successHandler(customOAuth2SuccessHandler)
                         .failureHandler(customOAuth2FailureHandler)
                 )
 
@@ -100,7 +101,6 @@ public class SecurityConfig {
         return http.build();
     }
 
-
     @Bean
     public JwtDecoder jwtDecoder(KeyProvider keys, JwtProperties props) {
         try {
@@ -116,16 +116,20 @@ public class SecurityConfig {
 
     @Bean
     public CookieOAuth2AuthorizationRequestRepository cookieOAuth2AuthorizationRequestRepository() {
-        return new CookieOAuth2AuthorizationRequestRepository("chainee.store"); // 쿠키 도메인
+        return new CookieOAuth2AuthorizationRequestRepository("chainee.store");
     }
 
+    /** ✅ CORS를 yml의 frontend-baseurls 기반으로 구성 */
     @Bean
-    public CorsFilter corsFilter() {
+    public CorsFilter corsFilter(AppProperties props) {
         CorsConfiguration cfg = new CorsConfiguration();
-        cfg.addAllowedOriginPattern("http://localhost:3000");
-        cfg.addAllowedOriginPattern("http://localhost:5173");
-        cfg.addAllowedOriginPattern("https://chainee.store");
-        cfg.addAllowedOriginPattern("https://www.chainee.store");
+
+        List<String> bases = props.effectiveBases();
+        for (String base : bases) {
+            // 정확한 Origin 문자열을 기대 (예: http://localhost:3000)
+            cfg.addAllowedOrigin(base);
+        }
+
         cfg.addAllowedHeader("*");
         cfg.addAllowedMethod("*");
         cfg.setAllowCredentials(true);
