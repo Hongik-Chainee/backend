@@ -106,7 +106,6 @@ public class SecurityConfig {
         try {
             RSAPublicKey publicKey = keys.currentKey().toRSAPublicKey();
             NimbusJwtDecoder decoder = NimbusJwtDecoder.withPublicKey(publicKey).build();
-            // iss 검증 추가(권장)
             OAuth2TokenValidator<Jwt> withIssuer = JwtValidators.createDefaultWithIssuer(props.issuer());
             decoder.setJwtValidator(withIssuer);
             return decoder;
