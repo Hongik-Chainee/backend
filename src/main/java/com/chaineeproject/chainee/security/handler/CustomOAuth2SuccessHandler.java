@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 
 @RequiredArgsConstructor
 @Component
@@ -43,7 +44,7 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         // 2) 다음 단계
         String nextStep = !u.isKycVerified() ? "KYC" : (!u.isDidVerified() ? "DID" : "HOME");
 
-        // 3) Refresh 토큰을 HttpOnly 쿠키로
+        // 3) Refresh 토큰을 HttpOnly 쿠키로 (도메인은 백엔드 운영 도메인 기준: chainee.store)
         int maxAge = (int) jwtProps.refreshTtl().toSeconds();
         boolean secure  = Boolean.TRUE.equals(jwtProps.cookie().secure());
         String sameSite = jwtProps.cookie().sameSite();
@@ -59,12 +60,15 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                 maxAge
         );
 
-        // 4) 리다이렉트 대상 베이스 URL 자동 선택 (Origin/Referer와 yml 목록 비교)
-        String base = normalizeBase(chooseBase(request)) + appProps.oauth2().callbackPath();
+        // 4) 리다이렉트 대상: 무조건 localhost:3000로 가되,
+        //    yml(app.frontend-baseurls)의 첫 값이 있으면 그걸 우선 사용.
+        String base = resolveFrontendBase();              // 예: http://localhost:3000
+        String cbPath = resolveCallbackPath();            // 예: /auth/callback
+        String redirectBase = normalizeBase(base) + cbPath;
 
-        // 5) Access 토큰/상태는 fragment로 전달
+        // 5) Access 토큰/상태는 fragment(#)로 전달 (쿼리스트링에 남기지 않음)
         String redirectUrl = buildFragmentUrl(
-                base,
+                redirectBase,
                 "accessToken", t.accessToken(),
                 "accessExp", String.valueOf(t.accessExpEpochSec()),
                 "refreshExp", String.valueOf(t.refreshExpEpochSec()),
@@ -73,11 +77,16 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                 "email", u.getUsername()
         );
 
+        // 6) 302 Redirect
         response.setStatus(HttpStatus.FOUND.value());
         response.setHeader("Location", redirectUrl);
+
+        if (log.isDebugEnabled()) {
+            log.debug("OAuth2 success -> redirect to {}", redirectUrl);
+        }
     }
 
-    /** 요청 호스트가 운영 도메인(chainee.store)이면 Domain 지정, 아니면 로컬/개발은 null */
+    /** 운영 도메인(chainee.store)에서만 Domain 지정, 로컬/기타는 null */
     private String cookieDomainFor(HttpServletRequest req) {
         String host = req.getServerName();
         if (host != null && (host.equals("chainee.store") || host.endsWith(".chainee.store"))) {
@@ -86,18 +95,19 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         return null;
     }
 
-    /** Origin/Referer와 yml의 허용 목록을 비교하여 베이스 URL 선택 */
-    private String chooseBase(HttpServletRequest req) {
-        String origin  = req.getHeader("Origin");
-        String referer = req.getHeader("Referer");
+    /** 프론트 베이스 URL 선택: app.frontend-baseurls[0] → 없으면 http://localhost:3000 */
+    private String resolveFrontendBase() {
         List<String> bases = appProps.effectiveBases();
+        if (bases != null && !bases.isEmpty()) return bases.get(0);
+        return "http://localhost:3000";
+    }
 
-        for (String base : bases) {
-            if (origin != null && origin.startsWith(base))  return base;
-            if (referer != null && referer.startsWith(base)) return base;
-        }
-        // 매칭 실패 시 첫 번째, 없으면 빈 문자열
-        return bases.isEmpty() ? "" : bases.get(0);
+    /** 콜백 경로: yml(app.oauth2.callback-path) → 없으면 /auth/callback */
+    private String resolveCallbackPath() {
+        return Optional.ofNullable(appProps.oauth2())
+                .map(AppProperties.Oauth2Props::callbackPath)
+                .filter(p -> !p.isBlank())
+                .orElse("/auth/callback");
     }
 
     private String normalizeBase(String base) {

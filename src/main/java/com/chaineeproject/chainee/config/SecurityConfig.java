@@ -124,10 +124,8 @@ public class SecurityConfig {
     public CorsFilter corsFilter(AppProperties props) {
         CorsConfiguration cfg = new CorsConfiguration();
 
-        List<String> bases = props.effectiveBases();
-        for (String base : bases) {
-            // 정확한 Origin 문자열을 기대 (예: http://localhost:3000)
-            cfg.addAllowedOrigin(base);
+        for (String base : props.effectiveBases()) {
+            cfg.addAllowedOrigin(base); // 정확한 Origin만 허용
         }
 
         cfg.addAllowedHeader("*");

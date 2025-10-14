@@ -37,7 +37,6 @@ app:
 
   frontend-baseurls:
     - http://localhost:3000
-    - https://app.chainee.store
 
   oauth2:
     callback-path: /auth/callback
