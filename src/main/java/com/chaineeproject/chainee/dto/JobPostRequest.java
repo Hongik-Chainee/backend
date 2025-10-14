@@ -8,8 +8,8 @@ import java.util.List;
 
 @Schema(description = "구인 공고 등록 요청 DTO")
 public record JobPostRequest(
-        @Schema(description = "작성자 DID", example = "did:example:abc123")
-        String authorDid,
+        @Schema(description = "작성자 ID", example = "19")
+        Long authorId,
 
         @Schema(description = "공고 제목", example = "백엔드 개발자 구합니다")
         String title,

@@ -22,15 +22,6 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(unique = true, length = 255)
-    private String did;
-
-    @Column(name = "did_nonce", length = 96)
-    private String didNonce;
-
-    @Column(name = "did_nonce_expires_at")
-    private java.time.LocalDateTime didNonceExpiresAt;
-
     private String provider;
     private String providerId;
 
@@ -39,6 +30,11 @@ public class User {
     @Column(name = "kyc_phone", length = 20)
     private String kycPhone;
     private LocalDateTime kycVerifiedAt;
+
+    @Column(name = "did_verified", nullable = false)
+    private boolean didVerified;        // 기본 false
+    @Column(name = "did_verified_at")
+    private LocalDateTime didVerifiedAt;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -105,6 +101,13 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void setDidNonce(String n) { this.didNonce = n; }
-    public String getDidNonce() { return didNonce; }
+    public void markDidVerified() {
+        this.didVerified = true;
+        this.didVerifiedAt = LocalDateTime.now();
+    }
+
+    public void unmarkDidVerified() {
+        this.didVerified = false;
+        this.didVerifiedAt = null;
+    }
 }

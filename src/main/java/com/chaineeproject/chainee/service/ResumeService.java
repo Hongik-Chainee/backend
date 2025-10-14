@@ -1,3 +1,4 @@
+// src/main/java/com/chaineeproject/chainee/service/ResumeService.java
 package com.chaineeproject.chainee.service;
 
 import com.chaineeproject.chainee.dto.*;
@@ -28,7 +29,7 @@ public class ResumeService {
 
     // ========= 생성 =========
     public Long createResume(ResumeCreateRequest request) {
-        User applicant = userRepository.findByDid(request.applicantDid())
+        User applicant = userRepository.findById(request.applicantId())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.APPLICANT_NOT_FOUND));
 
         Resume resume = new Resume();
