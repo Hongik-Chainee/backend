@@ -1,3 +1,4 @@
+// src/main/java/com/chaineeproject/chainee/controller/JobPostController.java
 package com.chaineeproject.chainee.controller;
 
 import com.chaineeproject.chainee.dto.JobPostRequest;
@@ -34,7 +35,7 @@ public class JobPostController {
     @PostMapping
     @Operation(
             summary = "구인 공고 등록",
-            description = "작성자의 DID를 바탕으로 구인 공고를 생성합니다.",
+            description = "작성자 ID를 바탕으로 구인 공고를 생성합니다.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     required = true,
                     content = @Content(
@@ -42,7 +43,7 @@ public class JobPostController {
                             schema = @Schema(implementation = JobPostRequest.class),
                             examples = @ExampleObject(value = """
                                 {
-                                  "authorDid": "did:example:abc123",
+                                  "authorId": 19,
                                   "title": "백엔드 개발자 구합니다",
                                   "description": "Spring Boot 프로젝트 개발자 모집",
                                   "payment": 1500000,
@@ -56,7 +57,7 @@ public class JobPostController {
     )
     public ResponseEntity<JobPostResponse> createJobPost(@RequestBody JobPostRequest request) {
         try {
-            User author = userRepository.findByDid(request.authorDid())
+            User author = userRepository.findById(request.authorId())
                     .orElseThrow(() -> new ApplicationException(ErrorCode.USER_NOT_FOUND));
 
             String skillsJson = objectMapper.writeValueAsString(request.requiredSkills());
@@ -78,7 +79,7 @@ public class JobPostController {
 
         } catch (JsonProcessingException e) {
             log.warn("requiredSkills 변환 실패", e);
-            throw new ApplicationException(ErrorCode.INVALID_REQUEST); // → 400
+            throw new ApplicationException(ErrorCode.INVALID_REQUEST);
         }
     }
 }

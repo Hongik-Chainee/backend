@@ -8,7 +8,6 @@ public record UserPreview(
         Long id,
         String name,
         String profileImageUrl,
-        String did,
         @Schema(description = "사용자 포지션 목록", example = "[\"Frontend\", \"UI/UX\"]")
         List<String> positions
 ) {}

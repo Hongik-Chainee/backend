@@ -24,8 +24,4 @@ public class UserService {
                 .orElseThrow(() -> new java.util.NoSuchElementException("해당 이메일의 사용자를 찾을 수 없습니다. email: " + email));
     }
 
-    public User findByDid(String did) {
-        return userRepository.findByDid(did)
-                .orElseThrow(() -> new java.util.NoSuchElementException("해당 DID의 사용자를 찾을 수 없습니다. did: " + did));
-    }
 }

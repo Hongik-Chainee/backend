@@ -1,3 +1,4 @@
+// src/main/java/com/chaineeproject/chainee/service/JobApplicationService.java
 package com.chaineeproject.chainee.service;
 
 import com.chaineeproject.chainee.dto.JobApplicationRequest;
@@ -25,8 +26,8 @@ public class JobApplicationService {
 
     @Transactional
     public void applyToJob(Long postId, JobApplicationRequest request) {
-        // 1. 지원자 조회
-        User applicant = userRepository.findByDid(request.applicantDid())
+        // 1. 지원자 조회 (ID)
+        User applicant = userRepository.findById(request.applicantId())
                 .orElseThrow(() -> new ApplicationException(ErrorCode.APPLICANT_NOT_FOUND));
 
         // 2. 공고 조회

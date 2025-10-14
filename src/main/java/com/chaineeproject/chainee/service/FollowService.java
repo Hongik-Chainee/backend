@@ -92,7 +92,6 @@ public class FollowService {
                 u.getId(),
                 u.getName(),
                 u.getProfileImageUrl(),
-                u.getDid(),
                 u.getPositions()
         );
     }
