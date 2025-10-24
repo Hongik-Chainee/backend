@@ -26,10 +26,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 import java.security.interfaces.RSAPublicKey;
-import java.util.List;
 
 @Configuration
-@EnableConfigurationProperties(AppProperties.class) // ✅ AppProperties 바인딩 활성화
+@EnableConfigurationProperties(AppProperties.class)
 public class SecurityConfig {
 
     private final CustomOauth2UserService customOauth2UserService;
@@ -52,15 +51,18 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .authorizeHttpRequests(auth -> auth
+                        // Swagger / H2 / 로그인 등 공개
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/error").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/login", "/oauth2/**").permitAll()
 
-                        .requestMatchers("/api/auth/refresh", "/api/auth/logout").permitAll()
-                        .requestMatchers("/api/auth/me").authenticated()
+                        // WS 핸드셰이크는 열어두고, STOMP CONNECT 에서 JWT 검증
+                        .requestMatchers("/ws/**").permitAll()
 
+                        // 인증 필요한 API
+                        .requestMatchers("/api/auth/me").authenticated()
                         .requestMatchers("/api/kyc/**").authenticated()
                         .requestMatchers("/api/did/**").authenticated()
                         .requestMatchers("/api/resumes/**").authenticated()
@@ -72,6 +74,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/notifications", "/api/notifications/unread-count").authenticated()
                         .requestMatchers(HttpMethod.PATCH,"/api/notifications/**").authenticated()
 
+                        // ✅ 채팅 REST는 인증 필수
+                        .requestMatchers("/api/chat/**").authenticated()
+
+                        // 나머지
                         .requestMatchers("/api/**").permitAll()
                         .anyRequest().permitAll()
                 )
@@ -84,7 +90,7 @@ public class SecurityConfig {
                         .failureHandler(customOAuth2FailureHandler)
                 )
 
-                .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> { }))
+                .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> {})) // RS256 JWT 검증
                 .exceptionHandling(ex -> ex
                         .authenticationEntryPoint((req, res, e) -> {
                             res.setContentType("application/json");
@@ -119,15 +125,12 @@ public class SecurityConfig {
         return new CookieOAuth2AuthorizationRequestRepository("chainee.store");
     }
 
-    /** ✅ CORS를 yml의 frontend-baseurls 기반으로 구성 */
     @Bean
     public CorsFilter corsFilter(AppProperties props) {
         CorsConfiguration cfg = new CorsConfiguration();
-
         for (String base : props.effectiveBases()) {
-            cfg.addAllowedOrigin(base); // 정확한 Origin만 허용
+            cfg.addAllowedOrigin(base);
         }
-
         cfg.addAllowedHeader("*");
         cfg.addAllowedMethod("*");
         cfg.setAllowCredentials(true);

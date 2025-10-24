@@ -11,7 +11,7 @@ public final class SecurityUtils {
     private SecurityUtils() {}
 
     /**
-     * Jwt → 사용자 ID
+     * Jwt → 사용자 ID (nullable)
      * - 우선 uid (숫자) 클레임 사용
      * - 없으면 sub를 Long으로 변환
      * - 실패 시 null
@@ -30,10 +30,26 @@ public final class SecurityUtils {
     }
 
     /**
-     * (하위호환) Authentication → 사용자 ID
-     * - principal이 Jwt면 uidOrNull(jwt)
-     * - OAuth2User면 attributes의 "id" 시도
-     * - UserDetails만 있으면(예: username=email) 필요 시 서비스에서 이메일→ID 매핑
+     * Jwt → 사용자 ID (non-null 보장, 없으면 IllegalArgumentException)
+     * 예시 코드에서 사용: STOMP CONNECT, Handshake 등
+     */
+    public static Long uidFromJwt(Jwt jwt) {
+        Long uid = uidOrNull(jwt);
+        if (uid == null) throw new IllegalArgumentException("JWT has no uid/sub claim");
+        return uid;
+    }
+
+    /**
+     * (옵션) Authentication → 사용자 ID (non-null 보장)
+     */
+    public static Long uidFromAuth(Authentication auth) {
+        Long uid = extractUserIdOrNull(auth);
+        if (uid == null) throw new IllegalArgumentException("No authenticated user id");
+        return uid;
+    }
+
+    /**
+     * (하위호환) Authentication → 사용자 ID (nullable)
      */
     public static Long extractUserIdOrNull(Authentication auth) {
         if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
@@ -60,7 +76,6 @@ public final class SecurityUtils {
 
         // 3) UserDetails(username=email)만 있는 경우 → 필요 시 이메일→ID 매핑(서비스 단)
         if (p instanceof UserDetails) {
-            // 예) return userRepository.findIdByEmail(((UserDetails) p).getUsername()).orElse(null);
             return null;
         }
 
