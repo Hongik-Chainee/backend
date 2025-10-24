@@ -35,11 +35,14 @@ public class AuthService {
         long accessTtl  = jwtProps.accessTtl().toSeconds();
         long refreshTtl = jwtProps.refreshTtl().toSeconds();
 
+        // ✅ DID 문자열 존재 여부가 아니라 didVerified 플래그 사용
         String access = jwtService.createAccessToken(
-                u.getId(), u.getEmail(),
+                u.getId(),
+                u.getEmail(),
                 u.isKycVerified(),
-                u.getDid()!=null && !u.getDid().isBlank(),
-                accessTtl);
+                u.isDidVerified(),   // <-- 여기만 바뀜
+                accessTtl
+        );
 
         String refresh = jwtService.createRefreshToken(u.getId(), refreshTtl);
 
@@ -53,8 +56,10 @@ public class AuthService {
                 .build();
         refreshRepo.save(rt);
 
-        return new AuthTokens(access, now.plusSeconds(accessTtl).getEpochSecond(),
-                refresh, now.plusSeconds(refreshTtl).getEpochSecond());
+        return new AuthTokens(
+                access, now.plusSeconds(accessTtl).getEpochSecond(),
+                refresh, now.plusSeconds(refreshTtl).getEpochSecond()
+        );
     }
 
     @Transactional

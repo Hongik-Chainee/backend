@@ -6,8 +6,8 @@ import java.util.List;
 
 @Schema(name = "ResumeCreateRequest", description = "이력서 생성 요청")
 public record ResumeCreateRequest(
-        @Schema(description = "지원자 DID", example = "did:example:xyz789")
-        @NotBlank String applicantDid,
+        @Schema(description = "지원자 ID", example = "19")
+        @NotBlank Long applicantId,
 
         @Schema(description = "이력서 제목", example = "프론트엔드 개발자 이력서")
         @NotBlank String title,
