@@ -1,7 +1,7 @@
 // src/main/java/com/chaineeproject/chainee/service/ChatService.java
 package com.chaineeproject.chainee.service;
 
-import com.chaineeproject.chainee.dto.chat.ChatConversationSummaryDto;
+import com.chaineeproject.chainee.dto.ChatConversationSummaryDto;
 import com.chaineeproject.chainee.entity.Conversation;
 import com.chaineeproject.chainee.entity.Message;
 import com.chaineeproject.chainee.entity.User;

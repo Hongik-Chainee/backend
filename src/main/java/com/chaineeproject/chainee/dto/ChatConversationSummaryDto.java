@@ -1,5 +1,5 @@
 // src/main/java/com/chaineeproject/chainee/dto/chat/ChatConversationSummaryDto.java
-package com.chaineeproject.chainee.dto.chat;
+package com.chaineeproject.chainee.dto;
 
 import java.time.LocalDateTime;
 
