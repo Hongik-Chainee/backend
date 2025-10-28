@@ -1,9 +1,11 @@
+// src/main/java/com/chaineeproject/chainee/controller/ChatController.java
 package com.chaineeproject.chainee.controller;
 
+import com.chaineeproject.chainee.dto.ChatConversationSummaryDto;
 import com.chaineeproject.chainee.entity.Conversation;
 import com.chaineeproject.chainee.entity.Message;
-import com.chaineeproject.chainee.service.ChatService;
 import com.chaineeproject.chainee.security.SecurityUtils;
+import com.chaineeproject.chainee.service.ChatService;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -11,6 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -30,6 +34,15 @@ public class ChatController {
         if (uid == null) return ResponseEntity.status(401).build();
         var conv = chatService.startConversation(req.postId(), req.applicantId(), uid);
         return ResponseEntity.ok(conv);
+    }
+
+    @GetMapping("/conversations")
+    @Operation(summary = "나의 대화방 요약 리스트")
+    public ResponseEntity<List<ChatConversationSummaryDto>> myConversations(@AuthenticationPrincipal Jwt jwt) {
+        Long uid = SecurityUtils.uidOrNull(jwt);
+        if (uid == null) return ResponseEntity.status(401).build();
+        var list = chatService.listConversationSummaries(uid);
+        return ResponseEntity.ok(list);
     }
 
     @GetMapping("/conversations/{conversationId}/messages")
