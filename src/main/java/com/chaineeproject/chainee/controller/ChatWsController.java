@@ -1,3 +1,4 @@
+// src/main/java/com/chaineeproject/chainee/controller/ChatWsController.java
 package com.chaineeproject.chainee.controller;
 
 import com.chaineeproject.chainee.entity.Message;
@@ -20,6 +21,10 @@ public class ChatWsController {
 
     public record WsSendPayload(Long conversationId, String content, String attachmentUrl) {}
 
+    /**
+     * 클라이언트 송신 목적지: /app/chat.send
+     * 구독 채널: /topic/conversations/{conversationId}
+     */
     @MessageMapping("/chat.send")
     public void send(@Payload WsSendPayload p, Principal principal) {
         Long senderId = extractUid(principal);
@@ -29,7 +34,6 @@ public class ChatWsController {
 
     private Long extractUid(Principal principal) {
         if (principal instanceof WsPrincipal ws) return ws.userId();
-        // 안전망: 그래도 없으면 거부
         throw new SecurityException("NO_AUTH");
     }
 }

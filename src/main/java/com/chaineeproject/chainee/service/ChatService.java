@@ -1,6 +1,7 @@
-// ChatService.java
+// src/main/java/com/chaineeproject/chainee/service/ChatService.java
 package com.chaineeproject.chainee.service;
 
+import com.chaineeproject.chainee.dto.chat.ChatConversationSummaryDto;
 import com.chaineeproject.chainee.entity.Conversation;
 import com.chaineeproject.chainee.entity.Message;
 import com.chaineeproject.chainee.entity.User;
@@ -16,6 +17,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class ChatService {
@@ -28,6 +31,9 @@ public class ChatService {
     @PersistenceContext
     private EntityManager em;
 
+    /**
+     * 공고 작성자(고용주)만 대화를 시작할 수 있음
+     */
     @Transactional
     public Conversation startConversation(Long postId, Long applicantId, Long requesterId) {
         // 중복 생성 방지
@@ -57,12 +63,51 @@ public class ChatService {
         return conversationRepo.save(conv);
     }
 
+    /**
+     * 내가 참여 중인 대화방(고용주 or 지원자) 페이지 조회
+     */
     @Transactional(readOnly = true)
     public Page<Conversation> myConversations(Long userId, int page, int size) {
-        // 구인자(작성자)거나 구직자인 대화방을 한 번에 조회
         return conversationRepo.findByPost_Author_IdOrApplicant_Id(userId, userId, PageRequest.of(page, size));
     }
 
+    /**
+     * 현재 사용자 기준 대화방 요약 리스트.
+     * - 상대방 이름/프로필
+     * - 마지막 메시지/시간
+     * - 미읽음 카운트
+     * 정렬: 간단히 id desc (원하면 updatedAt 컬럼을 Conversation에 추가 후 메시지 전송 때 갱신 권장)
+     */
+    @Transactional(readOnly = true)
+    public List<ChatConversationSummaryDto> listConversationSummaries(Long viewerId) {
+        var convs = conversationRepo.findByPost_Author_IdOrApplicant_IdOrderByIdDesc(viewerId, viewerId);
+
+        return convs.stream().map(c -> {
+            boolean iAmEmployer = c.getPost().getAuthor().getId().equals(viewerId);
+            var partner = iAmEmployer ? c.getApplicant() : c.getPost().getAuthor();
+
+            var last = messageRepo.findTopByConversationIdOrderByCreatedAtDesc(c.getId());
+            String lastContent = last != null ? last.getContent() : "";
+            var lastAt = last != null ? last.getCreatedAt() : c.getCreatedAt();
+
+            int unread = iAmEmployer
+                    ? messageRepo.countByConversationIdAndReadByEmployerFalseAndSender_IdNot(c.getId(), viewerId)
+                    : messageRepo.countByConversationIdAndReadByApplicantFalseAndSender_IdNot(c.getId(), viewerId);
+
+            return new ChatConversationSummaryDto(
+                    c.getId(),
+                    partner.getName(),
+                    partner.getProfileImageUrl(),
+                    lastContent,
+                    lastAt,
+                    unread
+            );
+        }).toList();
+    }
+
+    /**
+     * 메시지 전송 (참가자만 가능)
+     */
     @Transactional
     public Message sendMessage(Long conversationId, Long senderId, String content, String attachmentUrl) {
         var conv = conversationRepo.findById(conversationId)
@@ -80,13 +125,21 @@ public class ChatService {
                 .sender(senderRef)
                 .content(content)
                 .attachmentUrl(attachmentUrl)
-                .readByApplicant(isApplicant)  // 보낸 사람 쪽은 읽음으로 둘지 여부는 정책에 맞춰
+                .readByApplicant(isApplicant)  // 보낸 쪽을 읽음 처리할지 정책에 맞춰 조정 가능
                 .readByEmployer(isEmployer)
                 .build();
 
-        return messageRepo.save(msg);
+        var saved = messageRepo.save(msg);
+
+        // (선택) Conversation.updatedAt 갱신 로직을 쓰는 경우 여기서 갱신 권장
+        // conv.setUpdatedAt(saved.getCreatedAt());
+
+        return saved;
     }
 
+    /**
+     * 과거 메시지 페이지 조회 (참가자만 가능)
+     */
     @Transactional(readOnly = true)
     public Page<Message> getMessages(Long conversationId, Long requesterId, int page, int size) {
         var conv = conversationRepo.findById(conversationId)
@@ -102,6 +155,10 @@ public class ChatService {
         );
     }
 
+    /**
+     * 읽음 처리 (내가 고용주면 readByEmployer, 지원자면 readByApplicant)
+     * 간단 버전: 일괄 로드 후 변경. (규모 커지면 @Modifying bulk update 권장)
+     */
     @Transactional
     public void markRead(Long conversationId, Long requesterId) {
         var conv = conversationRepo.findById(conversationId)
@@ -111,7 +168,6 @@ public class ChatService {
         boolean isApplicant = conv.getApplicant().getId().equals(requesterId);
         if (!isEmployer && !isApplicant) throw new SecurityException("NOT_A_PARTICIPANT");
 
-        // 간단 버전: 일괄 로드 후 플래그 변경 (규모 커지면 @Modifying bulk-update 권장)
         messageRepo.findByConversationIdOrderByCreatedAtAsc(conversationId, PageRequest.of(0, 1000))
                 .forEach(m -> {
                     if (isEmployer) m.setReadByEmployer(true);
