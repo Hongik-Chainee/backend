@@ -52,7 +52,6 @@ public class KycPhoneService {
     public String requestCode(User user, String phone, String serviceName) {
         boolean isDev = Arrays.asList(env.getActiveProfiles()).contains("dev");
 
-        // dev 프로필 & test.enabled=true & (test.phone 미지정 또는 일치) & test.code 존재 → 고정코드 사용
         boolean matchPhone = (testPhone == null || testPhone.isBlank())
                 || normalize(phone).equals(normalize(testPhone));
         boolean useFixed = isDev && testEnabled && matchPhone
@@ -60,12 +59,10 @@ public class KycPhoneService {
 
         String code = useFixed ? testCode : random6();
 
-        // 테스트가 아니거나, 테스트라도 실제 발송 요구 시에만 Solapi 호출
         if (!useFixed || testSendSms) {
             solapiClient.sendVerificationCode(phone, code, serviceName);
         }
 
-        // 개발 편의: dev일 때만 코드 로깅
         if (isDev) log.warn("[DEV] KYC code for {} -> {}", phone, code);
 
         KycSession sess = KycSession.builder()
@@ -80,7 +77,7 @@ public class KycPhoneService {
     }
 
     @Transactional
-    public boolean verifyCode(User user, String requestId, String code) {
+    public boolean verifyCode(User user, String requestId, String code, String name) {
         KycSession sess = kycRepo.findById(requestId)
                 .orElseThrow(() -> new IllegalArgumentException("잘못된 요청 ID"));
         if (!sess.getUser().getId().equals(user.getId()))
@@ -93,6 +90,17 @@ public class KycPhoneService {
 
         // 통과 처리
         sess.setVerified(true);
+
+        // ✅ 이름 저장 정책: 기존 이름이 비어있을 때만 저장 (안전)
+        String trimmed = name == null ? null : name.trim();
+        if (trimmed != null && !trimmed.isEmpty()) {
+            if (user.getName() == null || user.getName().isBlank()) {
+                user.setName(trimmed);
+            }
+            // (항상 갱신 원하면 아래 주석 해제)
+            // user.setName(trimmed);
+        }
+
         user.setKycVerified(true);
         user.setKycPhone(sess.getPhone());
         user.setKycVerifiedAt(LocalDateTime.now());
