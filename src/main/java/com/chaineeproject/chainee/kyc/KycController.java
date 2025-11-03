@@ -31,7 +31,6 @@ public class KycController {
 
     private final KycPhoneService kycPhoneService;
     private final UserRepository userRepo;
-
     private final AuthService authService;
     private final JwtProperties jwtProps;
 
@@ -87,7 +86,7 @@ public class KycController {
 
     @Operation(
             summary = "휴대폰 인증검증",
-            description = "전송된 6자리 코드를 검증하고, 성공 시 access/refresh를 재발급합니다.",
+            description = "전송된 6자리 코드를 검증하고, 성공 시 access/refresh를 재발급하며, 이름을 저장합니다.",
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     required = true,
                     content = @Content(
@@ -99,7 +98,8 @@ public class KycController {
                                             value = """
                                                     {
                                                       "requestId": "8e5d1a0e-2c39-4a39-b73f-18d8d5b2c9f1",
-                                                      "code": "123456"
+                                                      "code": "123456",
+                                                      "name": "김여원"
                                                     }
                                                     """
                                     )
@@ -146,7 +146,16 @@ public class KycController {
                                                        @RequestBody @Valid KycPhoneVerifyDto body,
                                                        HttpServletResponse res) {
         User user = me(jwt);
-        boolean ok = kycPhoneService.verifyCode(user, body.requestId(), body.code());
+
+        boolean ok;
+        try {
+            ok = kycPhoneService.verifyCode(user, body.requestId(), body.code(), body.name());
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return ResponseEntity.ok(
+                    new KycPhoneVerifyResDto(false, "RETRY", null, null, null)
+            );
+        }
+
         if (!ok) {
             return ResponseEntity.ok(
                     new KycPhoneVerifyResDto(false, "RETRY", null, null, null)

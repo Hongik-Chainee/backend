@@ -10,5 +10,9 @@ public record KycPhoneVerifyDto(
 
         @Schema(description = "수신한 6자리 인증코드", example = "123456")
         @NotBlank
-        String code
+        String code,
+
+        @Schema(description = "실명", example = "김여원")
+        @NotBlank
+        String name
 ) {}
