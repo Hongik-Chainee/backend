@@ -33,7 +33,7 @@ app:
     refresh-cookie-name: refresh_token
     cookie:
       secure: true
-      same-site: Lax
+      same-site: None
 
   frontend-baseurls:
     - http://localhost:3000
