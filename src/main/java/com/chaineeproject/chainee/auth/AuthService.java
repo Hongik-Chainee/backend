@@ -1,3 +1,4 @@
+// src/main/java/com/chaineeproject/chainee/auth/AuthService.java
 package com.chaineeproject.chainee.auth;
 
 import com.chaineeproject.chainee.jwt.JwtProperties;
@@ -30,17 +31,17 @@ public class AuthService {
         } catch (Exception e) { throw new IllegalStateException(e); }
     }
 
+    /** ✅ 기존: 유저 객체로 발급 */
     @Transactional
     public AuthTokens issueFor(User u) {
         long accessTtl  = jwtProps.accessTtl().toSeconds();
         long refreshTtl = jwtProps.refreshTtl().toSeconds();
 
-        // ✅ DID 문자열 존재 여부가 아니라 didVerified 플래그 사용
         String access = jwtService.createAccessToken(
                 u.getId(),
                 u.getEmail(),
                 u.isKycVerified(),
-                u.isDidVerified(),   // <-- 여기만 바뀜
+                u.isDidVerified(),
                 accessTtl
         );
 
@@ -60,6 +61,13 @@ public class AuthService {
                 access, now.plusSeconds(accessTtl).getEpochSecond(),
                 refresh, now.plusSeconds(refreshTtl).getEpochSecond()
         );
+    }
+
+    /** ✅ 추가: 유저 ID만 받아 발급 — 교환 API에서 사용 */
+    @Transactional
+    public AuthTokens issueForUserId(Long userId) {
+        User u = userRepo.findById(userId).orElseThrow();
+        return issueFor(u);
     }
 
     @Transactional
