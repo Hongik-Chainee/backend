@@ -35,7 +35,7 @@ public class ResumeController {
                             schema = @Schema(implementation = ResumeCreateRequest.class),
                             examples = @ExampleObject(value = """
                                 {
-                                  "applicantDid": "did:example:xyz789",
+                                  "applicantId": 123,
                                   "title": "프론트엔드 개발자 이력서",
                                   "name": "홍길동",
                                   "introduction": "React와 Next.js 기반 프로젝트를 다수 진행했습니다.",
@@ -53,12 +53,9 @@ public class ResumeController {
                             schema = @Schema(implementation = ResumeResponse.class)))
     )
     public ResponseEntity<ResumeResponse> createResume(
-            @AuthenticationPrincipal Jwt jwt,                 // 보안정책상 /api/resumes/** 가 authenticated 라면 주입
+            @AuthenticationPrincipal Jwt jwt, // 인증 정책에 따라 사용 여부 결정
             @Valid @RequestBody ResumeCreateRequest request
     ) {
-        // 현재 정책이 DID 기반 생성이면 uid 없이 진행해도 됨.
-        // 만약 로그인 사용자의 소유로도 연결하려면 아래처럼 꺼내서 service로 전달:
-        // Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
         Long resumeId = resumeService.createResume(request);
         return ResponseEntity.ok(new ResumeResponse(true, "RESUME_CREATED", resumeId));
     }
@@ -110,31 +107,6 @@ public class ResumeController {
         Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
         if (currentUserId == null) return ResponseEntity.status(401).build();
         return ResponseEntity.ok(resumeService.getMyResume(currentUserId, resumeId));
-    }
-
-    // ===== 조회(공고 작성자: 지원서 통해 접근) =====
-    @GetMapping("/applications/{applicationId}")
-    @Operation(
-            summary = "지원서 기반 이력서 조회(공고 작성자용)",
-            description = """
-                공고 작성자가 자신에게 접수된 지원서의 이력서를 열람합니다.
-                - 현재 로그인 사용자는 해당 지원서의 공고 작성자여야 합니다.
-            """,
-            responses = {
-                    @ApiResponse(responseCode = "200", content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = ResumeView.class))),
-                    @ApiResponse(responseCode = "403", description = "권한 없음"),
-                    @ApiResponse(responseCode = "404", description = "지원서/이력서 없음")
-            }
-    )
-    public ResponseEntity<ResumeView> getResumeForPostAuthor(
-            @AuthenticationPrincipal Jwt jwt,
-            @PathVariable Long applicationId
-    ) {
-        Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
-        if (currentUserId == null) return ResponseEntity.status(401).build();
-        return ResponseEntity.ok(resumeService.getResumeByApplicationForPostAuthor(currentUserId, applicationId));
     }
 
     // ===== 수정(본인) =====
