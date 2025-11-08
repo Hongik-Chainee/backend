@@ -1,13 +1,10 @@
-// src/main/java/com/chaineeproject/chainee/service/ResumeService.java
 package com.chaineeproject.chainee.service;
 
 import com.chaineeproject.chainee.dto.*;
-import com.chaineeproject.chainee.entity.JobApplication;
 import com.chaineeproject.chainee.entity.Resume;
 import com.chaineeproject.chainee.entity.User;
 import com.chaineeproject.chainee.exception.ApplicationException;
 import com.chaineeproject.chainee.exception.ErrorCode;
-import com.chaineeproject.chainee.repository.JobApplicationRepository;
 import com.chaineeproject.chainee.repository.ResumeRepository;
 import com.chaineeproject.chainee.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +22,6 @@ public class ResumeService {
 
     private final UserRepository userRepository;
     private final ResumeRepository resumeRepository;
-    private final JobApplicationRepository jobApplicationRepository;
 
     // ========= 생성 =========
     public Long createResume(ResumeCreateRequest request) {
@@ -62,19 +58,6 @@ public class ResumeService {
             throw new ApplicationException(ErrorCode.FORBIDDEN);
         }
         return toView(r);
-    }
-
-    // ========= 조회(공고 작성자: 지원서 통해 접근) =========
-    @Transactional(readOnly = true)
-    public ResumeView getResumeByApplicationForPostAuthor(Long currentUserId, Long applicationId) {
-        JobApplication app = jobApplicationRepository.findById(applicationId)
-                .orElseThrow(() -> new ApplicationException(ErrorCode.APPLICATION_NOT_FOUND));
-
-        // 권한 체크: 현재 유저 == 공고 작성자
-        if (!app.getPost().getAuthor().getId().equals(currentUserId)) {
-            throw new ApplicationException(ErrorCode.FORBIDDEN);
-        }
-        return toView(app.getResume());
     }
 
     // ========= 수정(본인, 부분 업데이트) =========
