@@ -28,8 +28,6 @@ public class User {
     //kyc 관련 필드
     @Column(name = "kyc_verified", nullable = false)
     private boolean kycVerified;        // 기본 false
-    @Column(name = "kyc_phone", length = 20)
-    private String kycPhone;
     private LocalDateTime kycVerifiedAt;
 
     //did 관련 필드

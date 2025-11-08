@@ -19,7 +19,6 @@ public class KycSession {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    private String phone;
     private String codeHash;         // 6자리 코드 해시 저장
     private LocalDateTime expiresAt;
     private boolean verified;
