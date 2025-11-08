@@ -1,3 +1,4 @@
+// src/main/java/com/chaineeproject/chainee/did/DidController.java
 package com.chaineeproject.chainee.did;
 
 import com.chaineeproject.chainee.did.dto.DidVerifyRequest;
@@ -20,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/did")
 @RequiredArgsConstructor
-@Tag(name = "DID", description = "프론트 검증 결과를 반영해 didVerified 상태를 업데이트")
+@Tag(name = "DID", description = "프론트 검증 결과를 반영해 didVerified 상태와 did 주소를 업데이트")
 @SecurityRequirement(name = "bearerAuth")
 public class DidController {
 
@@ -33,16 +34,24 @@ public class DidController {
     }
 
     @Operation(
-            summary = "DID 검증 상태 반영",
-            description = "프론트에서 DID 검증을 끝낸 뒤 결과를 서버에 반영합니다. (문자열 DID는 저장하지 않음)",
+            summary = "DID 검증 상태 + 주소 반영",
+            description = """
+                    프론트에서 DID 검증을 끝낸 뒤 결과를 서버에 반영합니다.
+                    - verified=true이면 DID 주소(did:로 시작)를 함께 보내 저장합니다.
+                    - verified=false이면 검증 상태를 해제하고 저장된 DID를 제거합니다(정책).
+                    """,
             requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(
                     required = true,
                     content = @Content(
                             mediaType = MediaType.APPLICATION_JSON_VALUE,
                             schema = @Schema(implementation = DidVerifyRequest.class),
                             examples = {
-                                    @ExampleObject(name="검증 완료로 반영", value = "{ \"verified\": true }"),
-                                    @ExampleObject(name="검증 해제로 반영", value = "{ \"verified\": false }")
+                                    @ExampleObject(name="검증 완료 반영", value = """
+                                            { "verified": true, "did": "did:key:z6Mkabc123..." }
+                                            """),
+                                    @ExampleObject(name="검증 해제 반영", value = """
+                                            { "verified": false }
+                                            """)
                             }
                     )
             ),
@@ -56,6 +65,7 @@ public class DidController {
                                             {
                                               "success": true,
                                               "didVerified": true,
+                                              "did": "did:key:z6Mkabc123...",
                                               "didVerifiedAt": "2025-10-14T21:35:12.345"
                                             }
                                             """),
@@ -63,6 +73,7 @@ public class DidController {
                                             {
                                               "success": true,
                                               "didVerified": false,
+                                              "did": null,
                                               "didVerifiedAt": null
                                             }
                                             """)
@@ -71,13 +82,24 @@ public class DidController {
             )
     )
     @PostMapping(value = "/verify", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<DidVerifyResponse> verify(@AuthenticationPrincipal Jwt jwt,
-                                                    @RequestBody @Valid DidVerifyRequest req) {
-        var updated = didService.updateDidVerified(me(jwt), req.verified());
-        return ResponseEntity.ok(new DidVerifyResponse(
-                true,
-                updated.isDidVerified(),
-                updated.getDidVerifiedAt() != null ? updated.getDidVerifiedAt().toString() : null
-        ));
+    public ResponseEntity<?> verify(@AuthenticationPrincipal Jwt jwt,
+                                    @RequestBody @Valid DidVerifyRequest req) {
+        try {
+            var updated = didService.updateDidVerified(me(jwt), req.verified(), req.did());
+            return ResponseEntity.ok(new DidVerifyResponse(
+                    true,
+                    updated.isDidVerified(),
+                    updated.getDid(),
+                    updated.getDidVerifiedAt() != null ? updated.getDidVerifiedAt().toString() : null
+            ));
+        } catch (IllegalArgumentException e) {
+            // 형식 오류 등 클라이언트 책임 에러는 400으로 반환
+            return ResponseEntity.badRequest().body(new DidVerifyResponse(
+                    false,
+                    false,
+                    null,
+                    null
+            ));
+        }
     }
 }
