@@ -25,12 +25,16 @@ public class User {
     private String provider;
     private String providerId;
 
+    //kyc 관련 필드
     @Column(name = "kyc_verified", nullable = false)
     private boolean kycVerified;        // 기본 false
     @Column(name = "kyc_phone", length = 20)
     private String kycPhone;
     private LocalDateTime kycVerifiedAt;
 
+    //did 관련 필드
+    @Column(name = "did", length = 255, unique = true)
+    private String did;
     @Column(name = "did_verified", nullable = false)
     private boolean didVerified;        // 기본 false
     @Column(name = "did_verified_at")
@@ -101,12 +105,14 @@ public class User {
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void markDidVerified() {
+    public void markDidVerified(String didAddress) {
+        this.did = didAddress;
         this.didVerified = true;
         this.didVerifiedAt = LocalDateTime.now();
     }
 
     public void unmarkDidVerified() {
+        this.did = null;
         this.didVerified = false;
         this.didVerifiedAt = null;
     }
