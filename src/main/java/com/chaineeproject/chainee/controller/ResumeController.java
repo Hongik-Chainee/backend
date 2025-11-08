@@ -35,7 +35,6 @@ public class ResumeController {
                             schema = @Schema(implementation = ResumeCreateRequest.class),
                             examples = @ExampleObject(value = """
                                 {
-                                  "applicantId": 123,
                                   "title": "프론트엔드 개발자 이력서",
                                   "name": "홍길동",
                                   "introduction": "React와 Next.js 기반 프로젝트를 다수 진행했습니다.",
@@ -53,10 +52,13 @@ public class ResumeController {
                             schema = @Schema(implementation = ResumeResponse.class)))
     )
     public ResponseEntity<ResumeResponse> createResume(
-            @AuthenticationPrincipal Jwt jwt, // 인증 정책에 따라 사용 여부 결정
+            @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody ResumeCreateRequest request
     ) {
-        Long resumeId = resumeService.createResume(request);
+        Long currentUserId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
+        if (currentUserId == null) return ResponseEntity.status(401).build();
+
+        Long resumeId = resumeService.createResumeFor(currentUserId, request);
         return ResponseEntity.ok(new ResumeResponse(true, "RESUME_CREATED", resumeId));
     }
 
