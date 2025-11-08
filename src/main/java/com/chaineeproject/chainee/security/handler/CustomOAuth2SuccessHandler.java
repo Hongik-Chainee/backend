@@ -1,7 +1,9 @@
+// src/main/java/com/chaineeproject/chainee/security/handler/CustomOAuth2SuccessHandler.java
 package com.chaineeproject.chainee.security.handler;
 
 import com.chaineeproject.chainee.auth.AuthService;
 import com.chaineeproject.chainee.auth.AuthTokens;
+import com.chaineeproject.chainee.auth.LoginCodeStore;   // ✅ 추가
 import com.chaineeproject.chainee.config.AppProperties;
 import com.chaineeproject.chainee.jwt.JwtProperties;
 import com.chaineeproject.chainee.security.CustomOauth2UserDetails;
@@ -18,8 +20,10 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @RequiredArgsConstructor
 @Component
@@ -29,22 +33,20 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
     private final AuthService authService;
     private final JwtProperties jwtProps;
     private final AppProperties appProps;
+    private final LoginCodeStore loginCodeStore; // ✅ 주입
 
     @Override
-    public void onAuthenticationSuccess(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            Authentication authentication) throws IOException {
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException {
 
         CustomOauth2UserDetails u = (CustomOauth2UserDetails) authentication.getPrincipal();
 
-        // 1) 토큰 발급
+        // 1) 토큰 발급 (refresh는 쿠키로, access는 교환 API에서 내려줄 예정)
         AuthTokens t = authService.issueFor(u.getUser());
 
-        // 2) 다음 단계
+        // 2) 다음 스텝
         String nextStep = !u.isKycVerified() ? "KYC" : (!u.isDidVerified() ? "DID" : "HOME");
 
-        // 3) Refresh 토큰을 HttpOnly 쿠키로 (도메인은 백엔드 운영 도메인 기준: chainee.store)
+        // 3) refresh 토큰을 쿠키에 저장
         int maxAge = (int) jwtProps.refreshTtl().toSeconds();
         boolean secure  = Boolean.TRUE.equals(jwtProps.cookie().secure());
         String sameSite = jwtProps.cookie().sameSite();
@@ -60,24 +62,23 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
                 maxAge
         );
 
-        // 4) 리다이렉트 대상: 무조건 localhost:3000로 가되,
-        //    yml(app.frontend-baseurls)의 첫 값이 있으면 그걸 우선 사용.
-        String base = resolveFrontendBase();              // 예: http://localhost:3000
-        String cbPath = resolveCallbackPath();            // 예: /auth/callback
+        // 4) 1회용 loginCode 생성/저장 (유효 60초 권장)
+        String loginCode = UUID.randomUUID().toString().replace("-", "");
+        loginCodeStore.put(loginCode, u.getUser().getId(), Duration.ofSeconds(60));
+
+        // 5) 프론트 콜백으로 리다이렉트: fragment에 loginCode만 전달
+        String base = resolveFrontendBase();
+        String cbPath = resolveCallbackPath();
         String redirectBase = normalizeBase(base) + cbPath;
 
-        // 5) Access 토큰/상태는 fragment(#)로 전달 (쿼리스트링에 남기지 않음)
         String redirectUrl = buildFragmentUrl(
                 redirectBase,
-                "accessToken", t.accessToken(),
-                "accessExp", String.valueOf(t.accessExpEpochSec()),
-                "refreshExp", String.valueOf(t.refreshExpEpochSec()),
+                "loginCode", loginCode,
                 "nextStep", nextStep,
                 "registered", String.valueOf(!u.isNewUser()),
                 "email", u.getUsername()
         );
 
-        // 6) 302 Redirect
         response.setStatus(HttpStatus.FOUND.value());
         response.setHeader("Location", redirectUrl);
 
@@ -86,7 +87,6 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         }
     }
 
-    /** 운영 도메인(chainee.store)에서만 Domain 지정, 로컬/기타는 null */
     private String cookieDomainFor(HttpServletRequest req) {
         String host = req.getServerName();
         if (host != null && (host.equals("chainee.store") || host.endsWith(".chainee.store"))) {
@@ -95,14 +95,12 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         return null;
     }
 
-    /** 프론트 베이스 URL 선택: app.frontend-baseurls[0] → 없으면 http://localhost:3000 */
     private String resolveFrontendBase() {
         List<String> bases = appProps.effectiveBases();
         if (bases != null && !bases.isEmpty()) return bases.get(0);
         return "http://localhost:3000";
     }
 
-    /** 콜백 경로: yml(app.oauth2.callback-path) → 없으면 /auth/callback */
     private String resolveCallbackPath() {
         return Optional.ofNullable(appProps.oauth2())
                 .map(AppProperties.Oauth2Props::callbackPath)
@@ -119,10 +117,8 @@ public class CustomOAuth2SuccessHandler implements AuthenticationSuccessHandler 
         return URLEncoder.encode(s, StandardCharsets.UTF_8);
     }
 
-    /** fragment에 key=value&key=value 형태로 안전하게 넣는다 */
     private String buildFragmentUrl(String base, String... kv) {
-        StringBuilder sb = new StringBuilder(base);
-        sb.append("#");
+        StringBuilder sb = new StringBuilder(base).append("#");
         for (int i = 0; i < kv.length; i += 2) {
             if (i > 0) sb.append("&");
             sb.append(enc(kv[i])).append("=").append(enc(kv[i + 1]));
