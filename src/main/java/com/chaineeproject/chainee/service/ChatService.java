@@ -49,7 +49,7 @@ public class ChatService {
         }
 
         // 지원 여부 검증
-        boolean hasApplied = jobAppRepo.existsForPostAndApplicant(postId, applicantId);
+        boolean hasApplied = jobAppRepo.existsByPostIdAndApplicantId(postId, applicantId);
         if (!hasApplied) throw new IllegalStateException("APPLICANT_NOT_APPLIED");
 
         // applicant 프록시 참조(TransientProperty 방지)
