@@ -24,18 +24,16 @@ public class KycPhoneService {
     private final UserRepository userRepo;
     private final Environment env;
 
-    /** ===== 테스트(고정코드) 옵션 ===== */
-    @Value("${kyc.test.enabled:false}")     private boolean testEnabled;      // 기본: 비활성
-    @Value("${kyc.test.phone:}")            private String testPhone;         // 비우면 모든 번호 적용
-    @Value("${kyc.test.code:}")             private String testCode;          // 예: 376406
-    @Value("${kyc.test.send-sms:false}")    private boolean testSendSms;      // true면 테스트 번호에도 실제 발송
+    @Value("${kyc.test.enabled:false}")     private boolean testEnabled;
+    @Value("${kyc.test.phone:}")            private String testPhone;
+    @Value("${kyc.test.code:}")             private String testCode;
+    @Value("${kyc.test.send-sms:false}")    private boolean testSendSms;
     @Value("${kyc.code.ttl-seconds:300}")   private long ttlSeconds;
     @Value("${kyc.code.grace-seconds:0}")   private long graceSeconds;
 
     private String random6() {
         return String.format("%06d", new Random().nextInt(1_000_000));
     }
-
     private String sha256(String s) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -45,7 +43,6 @@ public class KycPhoneService {
             return sb.toString();
         } catch (Exception e) { throw new RuntimeException(e); }
     }
-
     private String normalize(String p) { return p == null ? "" : p.replaceAll("\\D", ""); }
 
     @Transactional
@@ -62,14 +59,18 @@ public class KycPhoneService {
         if (!useFixed || testSendSms) {
             solapiClient.sendVerificationCode(phone, code, serviceName);
         }
-
-        if (isDev) log.warn("[DEV] KYC code for {} -> {}", phone, code);
+        if (isDev) {
+            // 번호 전체 로그 금지: 일부만 마스킹
+            String masked = phone == null ? null
+                    : phone.replaceAll("\\d(?=\\d{2})", "*");
+            log.warn("[DEV] KYC code for {} -> {}", masked, code);
+        }
 
         KycSession sess = KycSession.builder()
                 .user(user)
-                .phone(phone)
+                // .phone(phone)  // ❌ 저장하지 않음
                 .codeHash(sha256(code))
-                .expiresAt(LocalDateTime.now().plusMinutes(5))
+                .expiresAt(LocalDateTime.now().plusSeconds(ttlSeconds))
                 .verified(false)
                 .build();
         kycRepo.save(sess);
@@ -91,19 +92,18 @@ public class KycPhoneService {
         // 통과 처리
         sess.setVerified(true);
 
-        // ✅ 이름 저장 정책: 기존 이름이 비어있을 때만 저장 (안전)
+        // 이름 저장 정책(변경 없음)
         String trimmed = name == null ? null : name.trim();
         if (trimmed != null && !trimmed.isEmpty()) {
             if (user.getName() == null || user.getName().isBlank()) {
                 user.setName(trimmed);
             }
-            // (항상 갱신 원하면 아래 주석 해제)
-            // user.setName(trimmed);
+            // 항상 덮어쓰려면 위 조건문을 제거하고 setName만 호출
         }
 
         user.setKycVerified(true);
-        user.setKycPhone(sess.getPhone());
         user.setKycVerifiedAt(LocalDateTime.now());
+        // user.setKycPhone(sess.getPhone()); // ❌ 제거
         userRepo.save(user);
         return true;
     }
