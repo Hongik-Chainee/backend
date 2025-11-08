@@ -24,22 +24,22 @@ public class ResumeService {
     private final ResumeRepository resumeRepository;
 
     // ========= 생성 =========
-    public Long createResume(ResumeCreateRequest request) {
-        User applicant = userRepository.findById(request.applicantId())
+    public Long createResumeFor(Long currentUserId, ResumeCreateRequest req) {
+        User applicant = userRepository.findById(currentUserId)
                 .orElseThrow(() -> new ApplicationException(ErrorCode.APPLICANT_NOT_FOUND));
 
-        Resume resume = new Resume();
-        resume.setOwner(applicant);
-        resume.setTitle(request.title());
-        resume.setName(request.name());
-        resume.setIntroduction(request.introduction());
-        resume.setDesiredPosition(request.desiredPosition());
-        if (request.skills() != null) resume.setSkills(String.join(",", request.skills()));
-        resume.setCareerLevel(request.careerLevel());
-        resume.setPortfolioUrl(request.portfolioUrl());
-        resume.setCreatedAt(LocalDateTime.now());
+        Resume r = new Resume();
+        r.setOwner(applicant);
+        r.setTitle(req.title());
+        r.setName(req.name());
+        r.setIntroduction(req.introduction());
+        r.setDesiredPosition(req.desiredPosition());
+        if (req.skills() != null) r.setSkills(String.join(",", req.skills()));
+        r.setCareerLevel(req.careerLevel());
+        r.setPortfolioUrl(req.portfolioUrl());
+        r.setCreatedAt(LocalDateTime.now());
 
-        return resumeRepository.save(resume).getId();
+        return resumeRepository.save(r).getId();
     }
 
     // ========= 조회(본인) 목록 =========
