@@ -1,13 +1,12 @@
-// src/main/java/com/chaineeproject/chainee/controller/JobApplicationController.java
 package com.chaineeproject.chainee.controller;
 
-import com.chaineeproject.chainee.dto.JobApplicationRequest;
+import com.chaineeproject.chainee.dto.JobApplicationApplyRequest;
 import com.chaineeproject.chainee.dto.JobApplicationResponse;
+import com.chaineeproject.chainee.security.SecurityUtils;
 import com.chaineeproject.chainee.service.JobApplicationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,17 +22,19 @@ public class JobApplicationController {
     private final JobApplicationService jobApplicationService;
 
     @PostMapping("/{postId}/apply")
-    @Operation(summary = "채용 공고 지원", description = "요청 사용자의 JWT uid를 지원자로 하여 지정한 공고에 지원합니다.")
+    @Operation(summary = "채용 공고 지원",
+            description = "요청 사용자의 JWT uid를 지원자로 하여 지정한 공고에 지원합니다.")
     public ResponseEntity<JobApplicationResponse> applyToJob(
-            @AuthenticationPrincipal Jwt jwt,
             @Parameter(description = "지원할 채용 공고 ID", example = "1")
             @PathVariable Long postId,
-            @Valid @RequestBody JobApplicationRequest request
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody JobApplicationApplyRequest request
     ) {
-        Long applicantId = com.chaineeproject.chainee.security.SecurityUtils.uidOrNull(jwt);
-        if (applicantId == null) return ResponseEntity.status(401).build();
-
-        jobApplicationService.applyToJob(postId, applicantId, request.resumeId());
+        Long currentUserId = SecurityUtils.uidOrNull(jwt);
+        if (currentUserId == null) {
+            return ResponseEntity.status(401).body(new JobApplicationResponse(false, "UNAUTHORIZED"));
+        }
+        jobApplicationService.applyToJob(postId, currentUserId, request.getResumeId());
         return ResponseEntity.ok(new JobApplicationResponse(true, "APPLICATION_SUBMITTED"));
     }
 }
