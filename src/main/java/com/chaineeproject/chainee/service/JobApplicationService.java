@@ -52,7 +52,7 @@ public class JobApplicationService {
         application.setCreatedAt(LocalDateTime.now());
         jobApplicationRepository.save(application);
 
-        jobPostRepository.incrementApplicantCount(postId);
+        jobPostRepository.syncApplicantCount(postId);
 
         // ✅ 지원 저장 직후 바로 알림 생성 (이벤트/트랜잭션 훅 의존 X)
         Notification noti = Notification.builder()
