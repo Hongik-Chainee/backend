@@ -34,7 +34,7 @@ public class JobApplicationController {
         if (currentUserId == null) {
             return ResponseEntity.status(401).body(new JobApplicationResponse(false, "UNAUTHORIZED"));
         }
-        jobApplicationService.applyToJob(postId, currentUserId, request.resumeId());
+        jobApplicationService.applyToJob(postId, currentUserId, request.getResumeId());
         return ResponseEntity.ok(new JobApplicationResponse(true, "APPLICATION_SUBMITTED"));
     }
 }
