@@ -1,13 +1,15 @@
+// src/main/java/com/chaineeproject/chainee/dto/JobPostDetailView.java
 package com.chaineeproject.chainee.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Schema(description = "구인 공고 상세")
-public record JobPostDetail(
+@Schema(description = "구인 공고 상세 응답 뷰")
+public record JobPostDetailView(
         Long id,
         String title,
         String description,
