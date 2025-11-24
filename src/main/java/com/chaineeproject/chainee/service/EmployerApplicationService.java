@@ -130,9 +130,6 @@ public class EmployerApplicationService {
 
     /**
      * 구인자 → 구직자에게 계약 전자서명 요청 알림 생성
-     * - 프론트는 transaction 문자열만 넘긴다.
-     * - 백엔드는 transaction을 그대로 Notification에 저장하고,
-     *   타이틀/메시지만 사람이 읽을 수 있게 세팅.
      */
     @Transactional
     public ContractNotificationResponse sendContractNotification(
@@ -172,7 +169,7 @@ public class EmployerApplicationService {
                 .notificationType(NotificationType.CONTRACT_SIGNATURE_REQUEST)
                 .title(title)
                 .message(message)
-                // linkUrl은 프론트 라우팅 전략에 따라 사용/미사용
+                .linkUrl(normalizeUrl(req.linkUrl()))
                 .linkUrl(null)
                 .build();
 
@@ -190,6 +187,10 @@ public class EmployerApplicationService {
 
     private static String nz(String s, String def) {
         return (s == null || s.isBlank()) ? def : s;
+    }
+
+    private static String normalizeUrl(String url) {
+        return (url == null || url.isBlank()) ? null : url.trim();
     }
 
     /**
@@ -233,7 +234,7 @@ public class EmployerApplicationService {
                 .notificationType(NotificationType.CONTRACT_SIGNED)
                 .title(title)
                 .message(message)
-                .linkUrl(null)
+                .linkUrl(normalizeUrl(req.linkUrl()))
                 .build();
 
         notificationRepository.save(noti);
