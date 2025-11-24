@@ -28,13 +28,24 @@ public class ContractNotificationController {
 
     /**
      * 구인자 → 구직자 : 계약서 전자 서명 요청 알림
-     * 예: POST /api/job/applications/{applicationId}/contract-request
-     * body: { "transaction": "{...raw tx...}" }
+     *
+     * 예:
+     *   POST /api/job/applications/{applicationId}/contract-request
+     *
+     * Request Body 예시:
+     * {
+     *   "transaction": "{ \"chain\": \"solana\", \"network\": \"devnet\", \"tx\": \"raw-tx-base64\" }",
+     *   "linkUrl": "/contracts/123/sign"
+     * }
      */
     @PostMapping("/{applicationId}/contract-request")
     @Operation(
             summary = "계약서 전자 서명 요청 알림 (구인자 → 구직자)",
-            description = "공고 작성자가 지원자에게 계약서 전자 서명을 요청하는 알림을 생성합니다."
+            description = """
+                    공고 작성자가 지원자에게 계약서 전자 서명을 요청하는 알림을 생성합니다.
+                    - transaction: 프론트에서 생성한 트랜잭션 payload 문자열
+                    - linkUrl: 알림 클릭 시 이동할 계약서 페이지 엔드포인트(도메인 제외)
+                    """
     )
     public ResponseEntity<ContractNotificationResponse> sendContractRequest(
             @AuthenticationPrincipal Jwt jwt,
@@ -49,14 +60,25 @@ public class ContractNotificationController {
     }
 
     /**
-     * 🔥 구직자 → 구인자 : 서명 완료 알림
-     * 예: POST /api/job/applications/{applicationId}/contract-signed
-     * body: { "transaction": "{...signed tx...}" }
+     * 구직자 → 구인자 : 서명 완료 알림
+     *
+     * 예:
+     *   POST /api/job/applications/{applicationId}/contract-signed
+     *
+     * Request Body 예시:
+     * {
+     *   "transaction": "{ \"chain\": \"solana\", \"network\": \"devnet\", \"tx\": \"signed-tx-base64\" }",
+     *   "linkUrl": "/contracts/123/sign"
+     * }
      */
     @PostMapping("/{applicationId}/contract-signed")
     @Operation(
             summary = "계약서 전자 서명 완료 알림 (구직자 → 구인자)",
-            description = "지원자가 계약서 전자 서명을 완료했음을 공고 작성자에게 알리는 알림을 생성합니다."
+            description = """
+                    지원자가 계약서 전자 서명을 완료했음을 공고 작성자에게 알리는 알림을 생성합니다.
+                    - transaction: 서명된 트랜잭션 payload 문자열
+                    - linkUrl: 알림 클릭 시 이동할 계약서 페이지 엔드포인트(도메인 제외)
+                    """
     )
     public ResponseEntity<ContractNotificationResponse> sendContractSigned(
             @AuthenticationPrincipal Jwt jwt,
