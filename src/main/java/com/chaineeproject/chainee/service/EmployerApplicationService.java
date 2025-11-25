@@ -169,14 +169,13 @@ public class EmployerApplicationService {
                 .notificationType(NotificationType.CONTRACT_SIGNATURE_REQUEST)
                 .title(title)
                 .message(message)
-                .linkUrl(normalizeUrl(req.linkUrl()))
-                .linkUrl(null)
+                .linkUrl(normalizeUrl(req.linkUrl()))   // 🔥 리퀘스트의 linkUrl 저장
                 .build();
 
         notificationRepository.save(noti);
 
-        log.debug("Contract signature notification created: notiId={}, applicationId={}",
-                noti.getId(), applicationId);
+        log.debug("Contract signature notification created: notiId={}, applicationId={}, linkUrl={}",
+                noti.getId(), applicationId, noti.getLinkUrl());
 
         return new ContractNotificationResponse(
                 true,
@@ -194,7 +193,7 @@ public class EmployerApplicationService {
     }
 
     /**
-     * 🔥 새로 추가: 구직자 → 구인자에게 "서명 완료" 알림 생성
+     * 구직자 → 구인자에게 "서명 완료" 알림 생성
      * - applicantId: JWT uid (요청자 = 구직자)
      * - applicationId: 지원 ID
      * - req.transaction: 서명된 트랜잭션(raw string)
@@ -234,13 +233,13 @@ public class EmployerApplicationService {
                 .notificationType(NotificationType.CONTRACT_SIGNED)
                 .title(title)
                 .message(message)
-                .linkUrl(normalizeUrl(req.linkUrl()))
+                .linkUrl(normalizeUrl(req.linkUrl()))   // 🔥 여기에도 linkUrl 저장
                 .build();
 
         notificationRepository.save(noti);
 
-        log.debug("Contract signed notification created: notiId={}, applicationId={}",
-                noti.getId(), applicationId);
+        log.debug("Contract signed notification created: notiId={}, applicationId={}, linkUrl={}",
+                noti.getId(), applicationId, noti.getLinkUrl());
 
         return new ContractNotificationResponse(
                 true,
